@@ -14,11 +14,14 @@ type DockerExecutor struct {
 	Logger    Logger
 	Client    DockerBackend
 	WorkSetup WorkSetup
+
+	pullLock sync.Mutex
 }
 
 type dockerHandle struct {
-	de    *DockerExecutor
-	cont  *backend.Container
+	de   *DockerExecutor
+	cont *backend.Container
+
 	watch sync.WaitGroup
 
 	done chan error
@@ -100,12 +103,22 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 			return nil, err
 		}
 
+		// There are known issues with doing concurrent pulls
+		// against docker. And because we might be spinning up
+		// multiple tasks at once, we simple serialize any pulling
+		// to keep things sane.
+
+		de.pullLock.Lock()
+
 		pio := backend.PullImageOptions{
 			Repository:   imgName,
 			OutputStream: out,
 		}
 
 		err = de.Client.PullImage(pio, backend.AuthConfiguration{})
+
+		de.pullLock.Unlock()
+
 		if err != nil {
 			return nil, err
 		}
