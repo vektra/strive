@@ -69,7 +69,7 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 	cmd.Stdout = out
 	cmd.Stderr = out
 
-	env := []string{"TASKID=" + task.Id}
+	env := []string{"STRIVE_TASKID=" + task.Id}
 
 	for k, v := range task.Description.Env {
 		env = append(env, k+"="+v)

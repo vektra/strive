@@ -108,7 +108,7 @@ func TestShellExecutor(t *testing.T) {
 		task := &Task{
 			Id: "task1",
 			Description: &TaskDescription{
-				Command: "echo $TASKID",
+				Command: "echo $STRIVE_TASKID",
 			},
 		}
 
@@ -134,7 +134,7 @@ func TestShellExecutor(t *testing.T) {
 		task := &Task{
 			Id: "task1",
 			Description: &TaskDescription{
-				Command: "echo $TASKID",
+				Command: "echo $STRIVE_TASKID",
 				URLs:    []string{"http://test.this/foo"},
 			},
 		}

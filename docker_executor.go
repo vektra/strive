@@ -2,6 +2,7 @@ package strive
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -52,7 +53,11 @@ func (dh *dockerHandle) Wait() error {
 		return err
 	}
 
-	return <-dh.done
+	err = <-dh.done
+
+	dh.de.Client.RemoveContainer(backend.RemoveContainerOptions{ID: dh.cont.ID})
+
+	return err
 }
 
 func (dh *dockerHandle) Stop(force bool) error {
@@ -73,9 +78,22 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
+	defer func() {
+		if err != nil {
+			out.Close()
+		}
+	}()
+
 	tmpDir, err := de.WorkSetup.TaskDir(task)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, url := range task.Description.URLs {
+		err = de.WorkSetup.DownloadURL(url, tmpDir)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	f, err := os.Create(filepath.Join(tmpDir, "metadata.json"))
@@ -124,13 +142,37 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		}
 	}
 
+	env := []string{"STRIVE_TASKID=" + task.Id}
+
+	hostCfg := &backend.HostConfig{
+		Binds: []string{tmpDir + ":/tmp/strive-sandbox"},
+	}
+
+	ports := task.Description.Container.Ports
+
+	if len(ports) > 0 {
+		pb := make(map[backend.Port][]backend.PortBinding)
+
+		for _, port := range ports {
+			key := backend.Port(port.DockerContainerPort())
+			pb[key] = append(
+				pb[key],
+				backend.PortBinding{HostPort: port.DockerHostPort()},
+			)
+
+			env = append(env, fmt.Sprintf("PORT=%d", port.ContainerPort))
+		}
+
+		hostCfg.PortBindings = pb
+	}
+
 	cco := backend.CreateContainerOptions{
 		Name: "strive-" + task.Id,
 		Config: &backend.Config{
 			Image:        imgName,
 			Hostname:     "strive-" + task.Id,
 			Cmd:          []string{"/bin/bash", "-c", task.Description.Command},
-			Env:          []string{"TASKID=" + task.Id},
+			Env:          env,
 			WorkingDir:   "/tmp/strive-sandbox",
 			AttachStdout: true,
 			AttachStderr: true,
@@ -144,16 +186,13 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 
 	dh := &dockerHandle{de: de, cont: cont}
 
-	dh.startLogs(out)
-
-	hostCfg := &backend.HostConfig{
-		Binds: []string{tmpDir + ":/tmp/strive-sandbox"},
-	}
-
 	err = de.Client.StartContainer(cont.ID, hostCfg)
 	if err != nil {
+		de.Client.RemoveContainer(backend.RemoveContainerOptions{ID: cont.ID})
 		return nil, err
 	}
+
+	dh.startLogs(out)
 
 	return dh, nil
 }
