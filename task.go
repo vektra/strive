@@ -25,6 +25,7 @@ type ContainerDetails struct {
 
 type TaskDescription struct {
 	Command  string
+	Exec     []string
 	Env      map[string]string
 	URLs     []string
 	MetaData map[string]interface{}

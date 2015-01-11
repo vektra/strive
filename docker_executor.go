@@ -171,12 +171,17 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		Config: &backend.Config{
 			Image:        imgName,
 			Hostname:     "strive-" + task.Id,
-			Cmd:          []string{"/bin/bash", "-c", task.Description.Command},
 			Env:          env,
 			WorkingDir:   "/tmp/strive-sandbox",
 			AttachStdout: true,
 			AttachStderr: true,
 		},
+	}
+
+	if len(task.Description.Exec) > 0 {
+		cco.Config.Cmd = task.Description.Exec
+	} else if task.Description.Command != "" {
+		cco.Config.Cmd = []string{"/bin/bash", "-c", task.Description.Command}
 	}
 
 	cont, err := de.Client.CreateContainer(cco)

@@ -64,7 +64,16 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command("bash", "-c", task.Description.Command)
+	var cmd *exec.Cmd
+
+	if len(task.Description.Exec) > 0 {
+		args := task.Description.Exec
+
+		cmd = exec.Command(args[0], args[1:]...)
+	} else {
+		cmd = exec.Command("bash", "-c", task.Description.Command)
+	}
+
 	cmd.Dir = dir
 	cmd.Stdout = out
 	cmd.Stderr = out

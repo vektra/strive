@@ -43,6 +43,31 @@ func TestShellExecutor(t *testing.T) {
 		assert.Equal(t, "hello\n", ml.Buffer.String())
 	})
 
+	n.It("passes exec args directly if given", func() {
+		task := &Task{
+			Description: &TaskDescription{
+				Exec: []string{"/bin/bash", "-c", "echo 'hello'"},
+			},
+		}
+
+		var ml MemLogger
+
+		se := &ShellExecutor{
+			Logger:    &ml,
+			WorkSetup: &mws,
+		}
+
+		mws.On("TaskDir", task).Return("/tmp", nil)
+
+		th, err := se.Run(task)
+		require.NoError(t, err)
+
+		err = th.Wait()
+		require.NoError(t, err)
+
+		assert.Equal(t, "hello\n", ml.Buffer.String())
+	})
+
 	n.It("sets up a workdir for the task", func() {
 		task := &Task{
 			Description: &TaskDescription{

@@ -622,5 +622,68 @@ func TestDockerExecutor(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	n.It("passes exec if specified", func() {
+		task := &Task{
+			Id: "task1",
+			Description: &TaskDescription{
+				Exec: []string{"hello", "world"},
+				Container: &ContainerDetails{
+					Image: "ubuntu",
+				},
+			},
+		}
+
+		mws.On("TaskDir", task).Return("/tmp", nil)
+
+		mdc.On("InspectImage", "ubuntu").Return(img, nil)
+
+		cco := backend.CreateContainerOptions{
+			Name: "strive-task1",
+			Config: &backend.Config{
+				Image:        "ubuntu",
+				Hostname:     "strive-task1",
+				Cmd:          []string{"hello", "world"},
+				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				WorkingDir:   "/tmp/strive-sandbox",
+				AttachStdout: true,
+				AttachStderr: true,
+			},
+		}
+
+		cont := &backend.Container{
+			ID:    "xxyyzz",
+			Image: "ubuntu",
+		}
+
+		mdc.On("CreateContainer", cco).Return(cont, nil)
+
+		attach := backend.AttachToContainerOptions{
+			Container:    cont.ID,
+			OutputStream: &ml.Buffer,
+			ErrorStream:  &ml.Buffer,
+
+			Stream: true,
+			Stdout: true,
+			Stderr: true,
+		}
+
+		mdc.On("AttachToContainer", attach).Return(nil)
+
+		hostCfg := &backend.HostConfig{
+			Binds: []string{"/tmp:/tmp/strive-sandbox"},
+		}
+
+		mdc.On("StartContainer", cont.ID, hostCfg).Return(nil)
+
+		th, err := de.Run(task)
+		require.NoError(t, err)
+
+		mdc.On("WaitContainer", cont.ID).Return(0, nil)
+		mdc.On("RemoveContainer", backend.RemoveContainerOptions{ID: cont.ID}).Return(nil)
+
+		err = th.Wait()
+		require.NoError(t, err)
+	})
+
 	n.Meow()
 }
