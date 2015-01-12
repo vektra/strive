@@ -6,28 +6,39 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vektra/neko"
+	"github.com/vektra/vega"
 )
 
 func TestTxn(t *testing.T) {
 	n := neko.Start(t)
 
+	var vm *vega.Message
+
+	n.Setup(func() {
+		vm = &vega.Message{}
+	})
+
+	set := func(us *UpdateState) {
+		vm.Type = "UpdateState"
+		setBody(vm, us)
+	}
+
 	n.It("adds new hosts to the state", func() {
 		host := &Host{
+			ID: "t1",
 			Resources: map[string]int{
 				"cpu": 4,
 				"mem": 1024,
 			},
 		}
 
-		msg := &UpdateState{
-			Hosts: map[string]*Host{
-				"t1": host,
-			},
-		}
+		set(&UpdateState{
+			AddHosts: []*Host{host},
+		})
 
 		txn := NewTxn()
 
-		err := txn.HandleMessage(msg)
+		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
 
 		h2 := txn.state.Hosts["t1"]
@@ -40,6 +51,7 @@ func TestTxn(t *testing.T) {
 
 	n.It("accepts new tasks", func() {
 		task := &Task{
+			Id: "task1",
 			Resources: map[string]TaskResources{
 				"t1": TaskResources{
 					"cpu": 1,
@@ -48,11 +60,9 @@ func TestTxn(t *testing.T) {
 			},
 		}
 
-		msg := &UpdateState{
-			Tasks: map[string]*Task{
-				"task1": task,
-			},
-		}
+		set(&UpdateState{
+			AddTasks: []*Task{task},
+		})
 
 		txn := NewTxn()
 
@@ -61,7 +71,7 @@ func TestTxn(t *testing.T) {
 			"mem": 1024,
 		}
 
-		err := txn.HandleMessage(msg)
+		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
 
 		assert.Equal(t, txn.state.Tasks["task1"], task)
@@ -72,6 +82,7 @@ func TestTxn(t *testing.T) {
 
 	n.It("rejects new tasks when a resource is missing", func() {
 		task := &Task{
+			Id: "task1",
 			Resources: map[string]TaskResources{
 				"t1": TaskResources{
 					"cpu": 1,
@@ -80,15 +91,13 @@ func TestTxn(t *testing.T) {
 			},
 		}
 
-		msg := &UpdateState{
-			Tasks: map[string]*Task{
-				"task1": task,
-			},
-		}
+		set(&UpdateState{
+			AddTasks: []*Task{task},
+		})
 
 		txn := NewTxn()
 
-		err := txn.HandleMessage(msg)
+		err := txn.HandleMessage(vm)
 		assert.Equal(t, err, ErrNoResource)
 
 		assert.Nil(t, txn.state.Tasks["task1"])
@@ -96,6 +105,7 @@ func TestTxn(t *testing.T) {
 
 	n.It("rejects new tasks when there is not enough of a resource", func() {
 		task := &Task{
+			Id: "task1",
 			Resources: map[string]TaskResources{
 				"t1": TaskResources{
 					"cpu": 1,
@@ -104,11 +114,9 @@ func TestTxn(t *testing.T) {
 			},
 		}
 
-		msg := &UpdateState{
-			Tasks: map[string]*Task{
-				"task1": task,
-			},
-		}
+		set(&UpdateState{
+			AddTasks: []*Task{task},
+		})
 
 		txn := NewTxn()
 
@@ -117,7 +125,7 @@ func TestTxn(t *testing.T) {
 			"mem": 1024,
 		}
 
-		err := txn.HandleMessage(msg)
+		err := txn.HandleMessage(vm)
 		assert.Equal(t, err, ErrNotEnoughResource)
 
 		assert.Nil(t, txn.state.Tasks["task1"])

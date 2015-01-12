@@ -7,8 +7,8 @@ import (
 import "github.com/vektra/vega"
 
 type UpdateState struct {
-	Hosts map[string]*Host
-	Tasks map[string]*Task
+	AddHosts []*Host
+	AddTasks []*Task
 }
 
 type StartTask struct {
@@ -55,6 +55,15 @@ var ErrUnknownMessage = errors.New("unknown message")
 
 func decodeMessage(vm *vega.Message) (interface{}, error) {
 	switch vm.Type {
+	case "UpdateState":
+		var us UpdateState
+
+		err := json.Unmarshal(vm.Body, &us)
+		if err != nil {
+			return nil, err
+		}
+
+		return &us, nil
 	case "TaskStatusChange":
 		var ts TaskStatusChange
 

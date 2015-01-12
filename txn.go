@@ -1,6 +1,10 @@
 package strive
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/vektra/vega"
+)
 
 type state struct {
 	Hosts map[string]*Host
@@ -22,7 +26,12 @@ func NewTxn() *Txn {
 	}
 }
 
-func (t *Txn) HandleMessage(msg interface{}) error {
+func (t *Txn) HandleMessage(vm *vega.Message) error {
+	msg, err := decodeMessage(vm)
+	if err != nil {
+		return err
+	}
+
 	switch specific := msg.(type) {
 	case *UpdateState:
 		return t.updateState(specific)
@@ -35,13 +44,12 @@ var ErrNotEnoughResource = errors.New("not enough of a resource")
 var ErrNoResource = errors.New("no such resource")
 
 func (t *Txn) updateState(us *UpdateState) error {
-	t.state.Hosts = us.Hosts
-
-	for name, host := range us.Hosts {
-		t.available[name] = host.Resources
+	for _, host := range us.AddHosts {
+		t.state.Hosts[host.ID] = host
+		t.available[host.ID] = host.Resources
 	}
 
-	for _, task := range us.Tasks {
+	for _, task := range us.AddTasks {
 		for host, res := range task.Resources {
 			avail := t.available[host]
 
@@ -59,7 +67,7 @@ func (t *Txn) updateState(us *UpdateState) error {
 	}
 
 	// ok, we can commit the tasks
-	for name, task := range us.Tasks {
+	for _, task := range us.AddTasks {
 		for host, res := range task.Resources {
 			avail := t.available[host]
 
@@ -68,7 +76,7 @@ func (t *Txn) updateState(us *UpdateState) error {
 			}
 		}
 
-		t.state.Tasks[name] = task
+		t.state.Tasks[task.Id] = task
 	}
 
 	return nil
