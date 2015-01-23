@@ -2,6 +2,7 @@ package strive
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,10 +13,15 @@ import (
 func TestTxn(t *testing.T) {
 	n := neko.Start(t)
 
+	var mb MockMessageBus
 	var vm *vega.Message
+	var txn *Txn
+
+	n.CheckMock(&mb.Mock)
 
 	n.Setup(func() {
 		vm = &vega.Message{}
+		txn = NewTxn(&mb)
 	})
 
 	set := func(us *UpdateState) {
@@ -36,14 +42,12 @@ func TestTxn(t *testing.T) {
 			AddHosts: []*Host{host},
 		})
 
-		txn := NewTxn()
-
 		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
 
 		h2 := txn.state.Hosts["t1"]
 
-		assert.Equal(t, host, h2)
+		assert.Equal(t, host.ID, h2.ID)
 
 		assert.Equal(t, txn.available["t1"]["cpu"], 4)
 		assert.Equal(t, txn.available["t1"]["mem"], 1024)
@@ -63,8 +67,6 @@ func TestTxn(t *testing.T) {
 		set(&UpdateState{
 			AddTasks: []*Task{task},
 		})
-
-		txn := NewTxn()
 
 		txn.available["t1"] = map[string]int{
 			"cpu": 4,
@@ -95,8 +97,6 @@ func TestTxn(t *testing.T) {
 			AddTasks: []*Task{task},
 		})
 
-		txn := NewTxn()
-
 		err := txn.HandleMessage(vm)
 		assert.Equal(t, err, ErrNoResource)
 
@@ -118,8 +118,6 @@ func TestTxn(t *testing.T) {
 			AddTasks: []*Task{task},
 		})
 
-		txn := NewTxn()
-
 		txn.available["t1"] = map[string]int{
 			"cpu": 4,
 			"mem": 1024,
@@ -132,6 +130,80 @@ func TestTxn(t *testing.T) {
 
 		assert.Equal(t, txn.available["t1"]["cpu"], 4)
 		assert.Equal(t, txn.available["t1"]["mem"], 1024)
+	})
+
+	n.It("updates a hosts heartbeat field when it recieves a status change", func() {
+		txn.state.Hosts["h1"] = &Host{
+			Status:        "online",
+			LastHeartbeat: time.Now().Add(-61 * time.Second),
+		}
+
+		now := time.Now()
+
+		var vm vega.Message
+		vm.Type = "HostStatusChange"
+		setBody(&vm, &HostStatusChange{Host: "h1", Status: "online"})
+
+		err := txn.HandleMessage(&vm)
+		require.NoError(t, err)
+
+		assert.True(t, txn.state.Hosts["h1"].LastHeartbeat.After(now))
+	})
+
+	n.It("updates a host status to reflect status in message", func() {
+		txn.state.Hosts["h1"] = &Host{
+			Status:        "online",
+			LastHeartbeat: time.Now().Add(-61 * time.Second),
+		}
+
+		now := time.Now()
+
+		var vm vega.Message
+		vm.Type = "HostStatusChange"
+		setBody(&vm, &HostStatusChange{Host: "h1", Status: "offline"})
+
+		err := txn.HandleMessage(&vm)
+		require.NoError(t, err)
+
+		assert.True(t, txn.state.Hosts["h1"].LastHeartbeat.After(now))
+		assert.Equal(t, txn.state.Hosts["h1"].Status, "offline")
+	})
+
+	n.It("sets hosts to offline if they've missed heartbeats", func() {
+		txn.state.Hosts["h1"] = &Host{
+			Status:        "online",
+			LastHeartbeat: time.Now().Add(-61 * time.Second),
+		}
+
+		err := txn.checkHeartbeats(60 * time.Second)
+		require.NoError(t, err)
+
+		assert.Equal(t, txn.state.Hosts["h1"].Status, "offline")
+	})
+
+	n.It("sets the statuses of all the hosts tasks to lost", func() {
+		txn.state.Hosts["h1"] = &Host{
+			ID:            "h1",
+			Status:        "online",
+			LastHeartbeat: time.Now().Add(-61 * time.Second),
+		}
+
+		txn.state.Tasks["t1"] = &Task{
+			Id:        "t1",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "running",
+		}
+
+		vm.Type = "TaskStatusChange"
+		setBody(vm, &TaskStatusChange{Id: "t1", Status: "lost"})
+
+		mb.On("SendMessage", "s1", vm).Return(nil)
+
+		err := txn.checkHeartbeats(60 * time.Second)
+		require.NoError(t, err)
+
+		assert.Equal(t, txn.state.Tasks["t1"].Status, "lost")
 	})
 
 	n.Meow()

@@ -35,6 +35,9 @@ type TaskDescription struct {
 
 type Task struct {
 	Id          string
+	Host        string
+	Scheduler   string
+	Status      string
 	Resources   map[string]TaskResources
 	Description *TaskDescription
 }

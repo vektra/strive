@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -334,6 +335,31 @@ func TestHostAgent(t *testing.T) {
 
 		err := ha.HandleMessage(&vm)
 		require.Equal(t, err, ErrUnknownMessage)
+	})
+
+	n.It("sends host status change messages at an interval", func() {
+		var vm vega.Message
+		vm.Type = "HostStatusChange"
+		setBody(&vm, &HostStatusChange{Status: "online"})
+
+		mb.On("SendMessage", "txn", &vm).Return(nil)
+
+		err := ha.SendHeartbeat("txn")
+		require.NoError(t, err)
+	})
+
+	n.It("sends the heartbeat with a period", func() {
+		defer ha.Close()
+
+		var vm vega.Message
+		vm.Type = "HostStatusChange"
+		setBody(&vm, &HostStatusChange{Status: "online"})
+
+		mb.On("SendMessage", "txn", &vm).Return(nil)
+
+		go ha.heartbeatLoop("txn", 50*time.Millisecond)
+
+		time.Sleep(100 * time.Millisecond)
 	})
 
 	n.Meow()

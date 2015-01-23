@@ -20,6 +20,14 @@ type MessageBus interface {
 	SendMessage(who string, vm *vega.Message) error
 }
 
+type MessageHandler interface {
+	HandleMessage(vm *vega.Message) error
+}
+
+type MessageBusReceiver interface {
+	Receive(hnd MessageHandler) error
+}
+
 type Logger interface {
 	SetupStream(task *Task) (io.WriteCloser, error)
 }

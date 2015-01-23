@@ -38,6 +38,11 @@ type TaskStatusChange struct {
 	Error  string
 }
 
+type HostStatusChange struct {
+	Host   string
+	Status string
+}
+
 type ListTasks struct {
 	OpId string
 }
@@ -73,6 +78,15 @@ func decodeMessage(vm *vega.Message) (interface{}, error) {
 		}
 
 		return &ts, nil
+	case "HostStatusChange":
+		var hs HostStatusChange
+
+		err := json.Unmarshal(vm.Body, &hs)
+		if err != nil {
+			return nil, err
+		}
+
+		return &hs, nil
 	case "StartTask":
 		var st StartTask
 

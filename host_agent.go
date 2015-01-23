@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/vektra/vega"
 )
@@ -15,6 +16,7 @@ type HostAgent struct {
 
 	watchwg      sync.WaitGroup
 	runningTasks map[string]TaskHandle
+	stop         chan struct{}
 }
 
 func NewHostAgent(mb MessageBus, se TaskExecutor) *HostAgent {
@@ -22,11 +24,22 @@ func NewHostAgent(mb MessageBus, se TaskExecutor) *HostAgent {
 		mb:           mb,
 		se:           se,
 		runningTasks: make(map[string]TaskHandle),
+		stop:         make(chan struct{}),
 	}
 }
 
 func (ha *HostAgent) Wait() {
 	ha.watchwg.Wait()
+}
+
+func (ha *HostAgent) Run(recv MessageBusReceiver, hbrecv string, hbtime time.Duration) error {
+	go ha.heartbeatLoop(hbrecv, hbtime)
+	return recv.Receive(ha)
+}
+
+func (ha *HostAgent) Close() error {
+	close(ha.stop)
+	return nil
 }
 
 func (ha *HostAgent) HandleMessage(vm *vega.Message) error {
@@ -161,4 +174,25 @@ func (ha *HostAgent) stopTask(vm *vega.Message, st *StopTask) error {
 	}
 
 	return nil
+}
+
+func (ha *HostAgent) SendHeartbeat(mailbox string) error {
+	var vm vega.Message
+	vm.Type = "HostStatusChange"
+	setBody(&vm, &HostStatusChange{Status: "online"})
+
+	return ha.mb.SendMessage(mailbox, &vm)
+}
+
+func (ha *HostAgent) heartbeatLoop(hbrecv string, hbtime time.Duration) {
+	tick := time.NewTicker(hbtime)
+
+	for {
+		select {
+		case <-tick.C:
+			ha.SendHeartbeat(hbrecv)
+		case <-ha.stop:
+			return
+		}
+	}
 }
