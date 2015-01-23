@@ -48,9 +48,34 @@ func TestTxn(t *testing.T) {
 		h2 := txn.state.Hosts["t1"]
 
 		assert.Equal(t, host.ID, h2.ID)
+		assert.Equal(t, h2.Status, "online")
 
 		assert.Equal(t, txn.available["t1"]["cpu"], 4)
 		assert.Equal(t, txn.available["t1"]["mem"], 1024)
+	})
+
+	n.It("updates the LastHeartbeat of new hosts", func() {
+		now := time.Now()
+
+		host := &Host{
+			ID: "t1",
+			Resources: map[string]int{
+				"cpu": 4,
+				"mem": 1024,
+			},
+			LastHeartbeat: now,
+		}
+
+		set(&UpdateState{
+			AddHosts: []*Host{host},
+		})
+
+		err := txn.HandleMessage(vm)
+		require.NoError(t, err)
+
+		h2 := txn.state.Hosts["t1"]
+
+		assert.True(t, h2.LastHeartbeat.After(now))
 	})
 
 	n.It("accepts new tasks", func() {
@@ -62,6 +87,8 @@ func TestTxn(t *testing.T) {
 					"mem": 512,
 				},
 			},
+			Status:     "created",
+			LastUpdate: time.Now(),
 		}
 
 		set(&UpdateState{
@@ -76,10 +103,71 @@ func TestTxn(t *testing.T) {
 		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
 
+		task.LastUpdate = txn.state.Tasks["task1"].LastUpdate
 		assert.Equal(t, txn.state.Tasks["task1"], task)
 
 		assert.Equal(t, txn.available["t1"]["cpu"], 3)
 		assert.Equal(t, txn.available["t1"]["mem"], 512)
+	})
+
+	n.It("sets the status of a new task to created", func() {
+		task := &Task{
+			Id: "task1",
+			Resources: map[string]TaskResources{
+				"t1": TaskResources{
+					"cpu": 1,
+					"mem": 512,
+				},
+			},
+			Status: "running",
+		}
+
+		set(&UpdateState{
+			AddTasks: []*Task{task},
+		})
+
+		txn.available["t1"] = map[string]int{
+			"cpu": 4,
+			"mem": 1024,
+		}
+
+		err := txn.HandleMessage(vm)
+		require.NoError(t, err)
+
+		assert.Equal(t, txn.state.Tasks["task1"].Status, "created")
+
+		assert.Equal(t, txn.available["t1"]["cpu"], 3)
+		assert.Equal(t, txn.available["t1"]["mem"], 512)
+	})
+
+	n.It("updates the LastUpdate of a new task to now", func() {
+		now := time.Now()
+
+		task := &Task{
+			Id: "task1",
+			Resources: map[string]TaskResources{
+				"t1": TaskResources{
+					"cpu": 1,
+					"mem": 512,
+				},
+			},
+			Status:     "running",
+			LastUpdate: now,
+		}
+
+		set(&UpdateState{
+			AddTasks: []*Task{task},
+		})
+
+		txn.available["t1"] = map[string]int{
+			"cpu": 4,
+			"mem": 1024,
+		}
+
+		err := txn.HandleMessage(vm)
+		require.NoError(t, err)
+
+		assert.True(t, txn.state.Tasks["task1"].LastUpdate.After(now))
 	})
 
 	n.It("rejects new tasks when a resource is missing", func() {
@@ -204,6 +292,43 @@ func TestTxn(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, txn.state.Tasks["t1"].Status, "lost")
+	})
+
+	n.It("updates a task's status via TaskStatusChange messages", func() {
+		txn.state.Tasks["t1"] = &Task{
+			Id:        "t1",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "created",
+		}
+
+		vm.Type = "TaskStatusChange"
+		setBody(vm, &TaskStatusChange{Id: "t1", Status: "running"})
+
+		err := txn.HandleMessage(vm)
+		require.NoError(t, err)
+
+		assert.Equal(t, txn.state.Tasks["t1"].Status, "running")
+	})
+
+	n.It("updates a task's LastUpdated via TaskStatusChange messages", func() {
+		now := time.Now()
+
+		txn.state.Tasks["t1"] = &Task{
+			Id:         "t1",
+			Scheduler:  "s1",
+			Host:       "h1",
+			Status:     "created",
+			LastUpdate: now,
+		}
+
+		vm.Type = "TaskStatusChange"
+		setBody(vm, &TaskStatusChange{Id: "t1", Status: "running"})
+
+		err := txn.HandleMessage(vm)
+		require.NoError(t, err)
+
+		assert.True(t, txn.state.Tasks["t1"].LastUpdate.After(now))
 	})
 
 	n.Meow()

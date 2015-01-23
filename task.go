@@ -1,6 +1,9 @@
 package strive
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type TaskResources map[string]int
 
@@ -37,7 +40,9 @@ type Task struct {
 	Id          string
 	Host        string
 	Scheduler   string
-	Status      string
 	Resources   map[string]TaskResources
 	Description *TaskDescription
+
+	Status     string
+	LastUpdate time.Time
 }

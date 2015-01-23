@@ -45,6 +45,8 @@ func TestHostAgent(t *testing.T) {
 		Description: &TaskDescription{
 			Command: "date",
 		},
+
+		LastUpdate: time.Now(),
 	}
 
 	startMsg := &StartTask{

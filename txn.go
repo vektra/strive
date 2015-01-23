@@ -41,7 +41,21 @@ func (t *Txn) HandleMessage(vm *vega.Message) error {
 		return t.updateState(specific)
 	case *HostStatusChange:
 		return t.updateHost(specific)
+	case *TaskStatusChange:
+		return t.updateTask(specific)
 	}
+
+	return ErrUnknownMessage
+}
+
+func (t *Txn) updateTask(ts *TaskStatusChange) error {
+	task, ok := t.state.Tasks[ts.Id]
+	if !ok {
+		return ErrUnknownTask
+	}
+
+	task.Status = ts.Status
+	task.LastUpdate = time.Now()
 
 	return nil
 }
@@ -65,6 +79,9 @@ var ErrNoResource = errors.New("no such resource")
 
 func (t *Txn) updateState(us *UpdateState) error {
 	for _, host := range us.AddHosts {
+		host.LastHeartbeat = time.Now()
+		host.Status = "online"
+
 		t.state.Hosts[host.ID] = host
 		t.available[host.ID] = host.Resources
 	}
@@ -95,6 +112,9 @@ func (t *Txn) updateState(us *UpdateState) error {
 				avail[rname] -= rval
 			}
 		}
+
+		task.Status = "created"
+		task.LastUpdate = time.Now()
 
 		t.state.Tasks[task.Id] = task
 	}
