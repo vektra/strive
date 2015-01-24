@@ -70,7 +70,12 @@ func TestHostAgent(t *testing.T) {
 	var ha *HostAgent
 
 	n.Setup(func() {
-		ha = NewHostAgent(&mb, &te)
+		ha = NewHostAgent("h1", "txn", 60*time.Second, &mb, &te)
+		go ha.process()
+	})
+
+	n.Cleanup(func() {
+		ha.Kill()
 	})
 
 	n.It("starts new tasks", func() {
@@ -95,10 +100,19 @@ func TestHostAgent(t *testing.T) {
 
 		mb.On("SendMessage", "sched", &ack).Return(nil)
 
+		var done vega.Message
+		done.Type = "TaskStatusChange"
+		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "finished"})
+
+		mb.On("SendMessage", "sched", &done).Return(nil)
+
 		te.On("Run", task).Return(&th, nil)
+		th.On("Wait").Return(nil)
 
 		err = ha.HandleMessage(&vm)
 		require.NoError(t, err)
+
+		ha.WaitTilIdle()
 	})
 
 	n.It("sends a status change when the task ends", func() {
@@ -123,7 +137,6 @@ func TestHostAgent(t *testing.T) {
 
 		mb.On("SendMessage", "sched", &out).Return(nil)
 		te.On("Run", task).Return(&th, nil)
-
 		th.On("Wait").Return(nil)
 
 		var done vega.Message
@@ -135,7 +148,7 @@ func TestHostAgent(t *testing.T) {
 		err = ha.HandleMessage(&vm)
 		require.NoError(t, err)
 
-		ha.Wait()
+		ha.WaitTilIdle()
 	})
 
 	n.It("sends a status change if run errors out", func() {
@@ -191,7 +204,6 @@ func TestHostAgent(t *testing.T) {
 
 		mb.On("SendMessage", "sched", &out).Return(nil)
 		te.On("Run", task).Return(&th, nil)
-
 		th.On("Wait").Return(exp)
 
 		var done vega.Message
@@ -203,7 +215,7 @@ func TestHostAgent(t *testing.T) {
 		err = ha.HandleMessage(&vm)
 		require.NoError(t, err)
 
-		ha.Wait()
+		ha.WaitTilIdle()
 	})
 
 	n.It("can stop a task that is running", func() {
@@ -225,7 +237,7 @@ func TestHostAgent(t *testing.T) {
 		err := ha.HandleMessage(&vm)
 		require.NoError(t, err)
 
-		ha.Wait()
+		ha.WaitTilIdle()
 	})
 
 	n.It("sends an error message if the task is unknown", func() {
@@ -277,7 +289,7 @@ func TestHostAgent(t *testing.T) {
 		err := ha.HandleMessage(&vm)
 		require.Equal(t, err, fe)
 
-		ha.Wait()
+		ha.WaitTilIdle()
 	})
 
 	n.It("can list the tasks it is running", func() {
@@ -351,7 +363,10 @@ func TestHostAgent(t *testing.T) {
 	})
 
 	n.It("sends the heartbeat with a period", func() {
-		defer ha.Close()
+		ha := NewHostAgent("h1", "txn", 60*time.Millisecond, &mb, &te)
+		defer ha.Kill()
+
+		go ha.process()
 
 		var vm vega.Message
 		vm.Type = "HostStatusChange"
@@ -359,10 +374,191 @@ func TestHostAgent(t *testing.T) {
 
 		mb.On("SendMessage", "txn", &vm).Return(nil)
 
-		go ha.heartbeatLoop("txn", 50*time.Millisecond)
-
 		time.Sleep(100 * time.Millisecond)
 	})
 
+	n.It("sends an offline message when shutdown", func() {
+		var dis vega.Message
+		dis.Type = "HostStatusChange"
+
+		setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
+
+		mb.On("SendMessage", "txn", &dis).Return(nil)
+
+		var vm vega.Message
+		vm.Type = "HostStatusChange"
+
+		setBody(&vm, &HostStatusChange{Status: "offline", Host: ha.Id})
+
+		mb.On("SendMessage", "txn", &vm).Return(nil)
+
+		ha.Close()
+	})
+
+	n.It("waits for tasks to finish before going offline", func() {
+		sleepTe := &SleepTaskExecutor{
+			Time: 1 * time.Second,
+			C:    make(chan struct{}),
+		}
+
+		ha := NewHostAgent("h1", "txn", 60*time.Millisecond, &mb, sleepTe)
+		defer ha.Close()
+
+		go ha.process()
+
+		var vm vega.Message
+
+		body, err := json.Marshal(startMsg)
+		require.NoError(t, err)
+
+		vm.ReplyTo = "sched"
+		vm.Type = "StartTask"
+		vm.Body = body
+
+		var out vega.Message
+		out.Type = "TaskStatusChange"
+		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "running"})
+
+		mb.On("SendMessage", "sched", &out).Return(nil)
+
+		var ack vega.Message
+		ack.Type = "OpAcknowledged"
+		setBody(&ack, &OpAcknowledged{startMsg.OpId})
+
+		mb.On("SendMessage", "sched", &ack).Return(nil)
+
+		err = ha.HandleMessage(&vm)
+		require.NoError(t, err)
+
+		var dis vega.Message
+		dis.Type = "HostStatusChange"
+
+		setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
+
+		mb.On("SendMessage", "txn", &dis).Return(nil)
+
+		ha.Shutdown()
+
+		// We need the shutdown code to start
+		time.Sleep(10 * time.Millisecond)
+
+		mb.AssertExpectations(t)
+
+		var done vega.Message
+		done.Type = "TaskStatusChange"
+		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "finished"})
+
+		mb.On("SendMessage", "sched", &done).Return(nil)
+
+		var hcm vega.Message
+		hcm.Type = "HostStatusChange"
+
+		setBody(&hcm, &HostStatusChange{Status: "offline", Host: ha.Id})
+
+		mb.On("SendMessage", "txn", &hcm).Return(nil)
+
+		select {
+		case <-sleepTe.C:
+			// ok
+		case <-time.Tick(1 * time.Second):
+			t.Fatalf("task was not waited on")
+		}
+
+		assert.True(t, sleepTe.finished)
+	})
+
+	n.It("skips waiting further if shutdown again while shutting down", func() {
+		sleepTe := &SleepTaskExecutor{
+			Time: 1 * time.Second,
+			C:    make(chan struct{}, 1),
+		}
+
+		ha := NewHostAgent("h1", "txn", 60*time.Millisecond, &mb, sleepTe)
+		defer ha.Close()
+
+		go ha.process()
+
+		var vm vega.Message
+
+		body, err := json.Marshal(startMsg)
+		require.NoError(t, err)
+
+		vm.ReplyTo = "sched"
+		vm.Type = "StartTask"
+		vm.Body = body
+
+		var out vega.Message
+		out.Type = "TaskStatusChange"
+		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "running"})
+
+		mb.On("SendMessage", "sched", &out).Return(nil)
+
+		var ack vega.Message
+		ack.Type = "OpAcknowledged"
+		setBody(&ack, &OpAcknowledged{startMsg.OpId})
+
+		mb.On("SendMessage", "sched", &ack).Return(nil)
+
+		err = ha.HandleMessage(&vm)
+		require.NoError(t, err)
+
+		var dis vega.Message
+		dis.Type = "HostStatusChange"
+
+		setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
+
+		mb.On("SendMessage", "txn", &dis).Return(nil)
+
+		ha.Shutdown()
+
+		// We need the shutdown code to start
+		time.Sleep(10 * time.Millisecond)
+
+		mb.AssertExpectations(t)
+
+		ha.Shutdown()
+
+		var hcm vega.Message
+		hcm.Type = "HostStatusChange"
+
+		setBody(&hcm, &HostStatusChange{Status: "offline", Host: ha.Id})
+
+		mb.On("SendMessage", "txn", &hcm).Return(nil)
+
+		// We need the shutdown code to run again
+		time.Sleep(10 * time.Millisecond)
+
+		assert.False(t, sleepTe.finished)
+
+		// In the background, it will eventually finish so we need to put
+		// this here.
+		var done vega.Message
+		done.Type = "TaskStatusChange"
+		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "finished"})
+
+		mb.On("SendMessage", "sched", &done).Return(nil)
+	})
+
 	n.Meow()
+}
+
+type SleepTaskExecutor struct {
+	finished bool
+	Time     time.Duration
+	C        chan struct{}
+}
+
+func (se *SleepTaskExecutor) Run(task *Task) (TaskHandle, error) {
+	return se, nil
+}
+
+func (se *SleepTaskExecutor) Stop(force bool) error {
+	return nil
+}
+
+func (se *SleepTaskExecutor) Wait() error {
+	time.Sleep(se.Time)
+	se.finished = true
+	se.C <- struct{}{}
+	return nil
 }

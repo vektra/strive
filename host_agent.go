@@ -11,35 +11,110 @@ import (
 )
 
 type HostAgent struct {
+	Id string
+
 	mb MessageBus
 	se TaskExecutor
 
 	watchwg      sync.WaitGroup
 	runningTasks map[string]TaskHandle
-	stop         chan struct{}
+
+	messages chan *vega.Message
+	shutdown chan bool
+	done     chan error
+
+	txn    string
+	hbtime time.Duration
 }
 
-func NewHostAgent(mb MessageBus, se TaskExecutor) *HostAgent {
+const cReceiveBacklog = 10
+
+func NewHostAgent(id, txn string, hbtime time.Duration, mb MessageBus, se TaskExecutor) *HostAgent {
 	return &HostAgent{
+		Id:           id,
 		mb:           mb,
 		se:           se,
 		runningTasks: make(map[string]TaskHandle),
-		stop:         make(chan struct{}),
+		messages:     make(chan *vega.Message, cReceiveBacklog),
+		shutdown:     make(chan bool, 3),
+		done:         make(chan error),
+
+		txn:    txn,
+		hbtime: hbtime,
 	}
 }
 
-func (ha *HostAgent) Wait() {
+func (ha *HostAgent) Shutdown() error {
+	ha.shutdown <- false
+	return nil
+}
+
+func (ha *HostAgent) WaitTilIdle() {
 	ha.watchwg.Wait()
 }
 
-func (ha *HostAgent) Run(recv MessageBusReceiver, hbrecv string, hbtime time.Duration) error {
-	go ha.heartbeatLoop(hbrecv, hbtime)
-	return recv.Receive(ha)
+func (ha *HostAgent) Wait() error {
+	ha.WaitTilIdle()
+	return <-ha.done
 }
 
 func (ha *HostAgent) Close() error {
-	close(ha.stop)
-	return nil
+	ha.Shutdown()
+	return ha.Wait()
+}
+
+func (ha *HostAgent) Kill() {
+	ha.shutdown <- true
+	ha.Wait()
+}
+
+func (ha *HostAgent) process() {
+	tick := time.NewTicker(ha.hbtime)
+
+	for {
+		select {
+		case <-tick.C:
+			ha.SendHeartbeat(ha.txn)
+		case msg := <-ha.messages:
+			ha.HandleMessage(msg)
+		case kill := <-ha.shutdown:
+			if kill {
+				close(ha.done)
+				return
+			}
+
+			var dis vega.Message
+
+			dis.Type = "HostStatusChange"
+
+			setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
+			ha.mb.SendMessage(ha.txn, &dis)
+
+			waitChan := make(chan struct{})
+
+			go func() {
+				ha.WaitTilIdle()
+				waitChan <- struct{}{}
+			}()
+
+			select {
+			case <-waitChan:
+				// ok!
+			case <-ha.shutdown:
+				// gtfo!
+			}
+
+			var vm vega.Message
+
+			vm.Type = "HostStatusChange"
+
+			setBody(&vm, &HostStatusChange{Status: "offline", Host: ha.Id})
+			ha.mb.SendMessage(ha.txn, &vm)
+
+			close(ha.done)
+			return
+		}
+	}
 }
 
 func (ha *HostAgent) HandleMessage(vm *vega.Message) error {
@@ -182,17 +257,4 @@ func (ha *HostAgent) SendHeartbeat(mailbox string) error {
 	setBody(&vm, &HostStatusChange{Status: "online"})
 
 	return ha.mb.SendMessage(mailbox, &vm)
-}
-
-func (ha *HostAgent) heartbeatLoop(hbrecv string, hbtime time.Duration) {
-	tick := time.NewTicker(hbtime)
-
-	for {
-		select {
-		case <-tick.C:
-			ha.SendHeartbeat(hbrecv)
-		case <-ha.stop:
-			return
-		}
-	}
 }
