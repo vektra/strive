@@ -2,7 +2,6 @@ package strive
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -95,14 +94,10 @@ type structuredStream struct {
 }
 
 func (ss *structuredStream) process() {
-	kvStream := &log.KVStream{
-		Src:    ss.read,
-		Out:    ss,
-		Bare:   false,
-		Source: ss.name,
+	kvStream := &log.SwitchStream{
+		Input: ss.read,
+		Out:   ss,
 	}
-
-	fmt.Println("processing..")
 
 	kvStream.Parse()
 }
