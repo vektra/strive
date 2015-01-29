@@ -40,7 +40,7 @@ func TestShellExecutor(t *testing.T) {
 		err = th.Wait()
 		require.NoError(t, err)
 
-		assert.Equal(t, "hello\n", ml.Buffer.String())
+		assert.Equal(t, "hello\n", ml.Buffers["output"].String())
 	})
 
 	n.It("passes exec args directly if given", func() {
@@ -65,7 +65,7 @@ func TestShellExecutor(t *testing.T) {
 		err = th.Wait()
 		require.NoError(t, err)
 
-		assert.Equal(t, "hello\n", ml.Buffer.String())
+		assert.Equal(t, "hello\n", ml.Buffers["output"].String())
 	})
 
 	n.It("sets up a workdir for the task", func() {
@@ -98,7 +98,7 @@ func TestShellExecutor(t *testing.T) {
 		dir, err := filepath.EvalSymlinks(tmpDir)
 		require.NoError(t, err)
 
-		assert.Equal(t, dir+"\n", ml.Buffer.String())
+		assert.Equal(t, dir+"\n", ml.Buffers["output"].String())
 	})
 
 	n.It("pass environment variables to the command", func() {
@@ -126,7 +126,7 @@ func TestShellExecutor(t *testing.T) {
 		err = th.Wait()
 		require.NoError(t, err)
 
-		assert.Equal(t, "hello\n", ml.Buffer.String())
+		assert.Equal(t, "hello\n", ml.Buffers["output"].String())
 	})
 
 	n.It("passes the task id as an env var", func() {
@@ -152,7 +152,7 @@ func TestShellExecutor(t *testing.T) {
 		err = th.Wait()
 		require.NoError(t, err)
 
-		assert.Equal(t, "task1\n", ml.Buffer.String())
+		assert.Equal(t, "task1\n", ml.Buffers["output"].String())
 	})
 
 	n.It("pulls down urls into the work dir", func() {
@@ -180,7 +180,7 @@ func TestShellExecutor(t *testing.T) {
 		err = th.Wait()
 		require.NoError(t, err)
 
-		assert.Equal(t, "task1\n", ml.Buffer.String())
+		assert.Equal(t, "task1\n", ml.Buffers["output"].String())
 	})
 
 	n.It("writes the metadata into the work dir", func() {
@@ -215,7 +215,7 @@ func TestShellExecutor(t *testing.T) {
 
 		exp := `{"stuff":"is cool"}` + "\n"
 
-		assert.Equal(t, exp, ml.Buffer.String())
+		assert.Equal(t, exp, ml.Buffers["output"].String())
 	})
 
 	n.It("writes valid json if metadata is empty", func() {
@@ -247,7 +247,32 @@ func TestShellExecutor(t *testing.T) {
 
 		exp := `{}` + "\n"
 
-		assert.Equal(t, exp, ml.Buffer.String())
+		assert.Equal(t, exp, ml.Buffers["output"].String())
+	})
+
+	n.It("setups up a separate stderr stream", func() {
+		task := &Task{
+			Description: &TaskDescription{
+				Command: "echo 'hello' > /dev/stderr",
+			},
+		}
+
+		var ml MemLogger
+
+		se := &ShellExecutor{
+			Logger:    &ml,
+			WorkSetup: &mws,
+		}
+
+		mws.On("TaskDir", task).Return("/tmp", nil)
+
+		th, err := se.Run(task)
+		require.NoError(t, err)
+
+		err = th.Wait()
+		require.NoError(t, err)
+
+		assert.Equal(t, "hello\n", ml.Buffers["error"].String())
 	})
 
 	n.Meow()

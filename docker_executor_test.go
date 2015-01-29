@@ -74,10 +74,16 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("CreateContainer", cco).Return(cont, nil)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -127,10 +133,16 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("CreateContainer", cco).Return(cont, nil)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -166,9 +178,15 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("InspectImage", "ubuntu").Return((*backend.Image)(nil), backend.ErrNoSuchImage)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		pio := backend.PullImageOptions{
 			Repository:   "ubuntu",
-			OutputStream: &ml.Buffer,
+			OutputStream: out,
 		}
 
 		mdc.On("PullImage", pio, backend.AuthConfiguration{}).Return(nil)
@@ -195,8 +213,8 @@ func TestDockerExecutor(t *testing.T) {
 
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -244,9 +262,15 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("InspectImage", "ubuntu").Return((*backend.Image)(nil), backend.ErrNoSuchImage)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		pio := backend.PullImageOptions{
 			Repository:   "ubuntu",
-			OutputStream: &ml.Buffer,
+			OutputStream: out,
 		}
 
 		mdc.On("PullImage", pio, backend.AuthConfiguration{}).Return(nil)
@@ -273,8 +297,8 @@ func TestDockerExecutor(t *testing.T) {
 
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -325,9 +349,15 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("InspectImage", "ubuntu").Return((*backend.Image)(nil), backend.ErrNoSuchImage)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		pio := backend.PullImageOptions{
 			Repository:   "ubuntu",
-			OutputStream: &ml.Buffer,
+			OutputStream: out,
 		}
 
 		mdc.On("PullImage", pio, backend.AuthConfiguration{}).Return(nil)
@@ -354,8 +384,8 @@ func TestDockerExecutor(t *testing.T) {
 
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -428,10 +458,16 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("CreateContainer", cco).Return(cont, nil)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -523,10 +559,16 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("CreateContainer", cco).Return(cont, nil)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -588,10 +630,16 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("CreateContainer", cco).Return(cont, nil)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,
@@ -657,10 +705,16 @@ func TestDockerExecutor(t *testing.T) {
 
 		mdc.On("CreateContainer", cco).Return(cont, nil)
 
+		out, err := ml.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := ml.SetupStream("error", task)
+		require.NoError(t, err)
+
 		attach := backend.AttachToContainerOptions{
 			Container:    cont.ID,
-			OutputStream: &ml.Buffer,
-			ErrorStream:  &ml.Buffer,
+			OutputStream: out,
+			ErrorStream:  errstr,
 
 			Stream: true,
 			Stdout: true,

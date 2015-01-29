@@ -28,7 +28,7 @@ type dockerHandle struct {
 	done chan error
 }
 
-func (dh *dockerHandle) startLogs(out io.Writer) {
+func (dh *dockerHandle) startLogs(out, errstr io.Writer) {
 	dh.watch.Add(1)
 
 	dh.done = make(chan error)
@@ -37,7 +37,7 @@ func (dh *dockerHandle) startLogs(out io.Writer) {
 		attach := backend.AttachToContainerOptions{
 			Container:    dh.cont.ID,
 			OutputStream: out,
-			ErrorStream:  out,
+			ErrorStream:  errstr,
 			Stream:       true,
 			Stdout:       true,
 			Stderr:       true,
@@ -73,14 +73,21 @@ func (dh *dockerHandle) Stop(force bool) error {
 }
 
 func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
-	out, err := de.Logger.SetupStream(task)
+	out, err := de.Logger.SetupStream("output", task)
 	if err != nil {
+		return nil, err
+	}
+
+	errstr, err := de.Logger.SetupStream("error", task)
+	if err != nil {
+		out.Close()
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
 			out.Close()
+			errstr.Close()
 		}
 	}()
 
@@ -184,6 +191,13 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		cco.Config.Cmd = []string{"/bin/bash", "-c", task.Description.Command}
 	}
 
+	if injDockerLog, ok := de.Logger.(DockerLogInjector); ok {
+		err = injDockerLog.InjectDocker(cco.Config, hostCfg, task)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	cont, err := de.Client.CreateContainer(cco)
 	if err != nil {
 		return nil, err
@@ -197,7 +211,7 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
-	dh.startLogs(out)
+	dh.startLogs(out, errstr)
 
 	return dh, nil
 }

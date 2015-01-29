@@ -30,7 +30,12 @@ func (sh *shellHandle) Wait() error {
 }
 
 func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
-	out, err := se.Logger.SetupStream(task)
+	out, err := se.Logger.SetupStream("output", task)
+	if err != nil {
+		return nil, err
+	}
+
+	errstr, err := se.Logger.SetupStream("error", task)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +81,14 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 
 	cmd.Dir = dir
 	cmd.Stdout = out
-	cmd.Stderr = out
+	cmd.Stderr = errstr
+
+	if injShell, ok := se.Logger.(ShellLogInjector); ok {
+		err = injShell.InjectLog(cmd, task)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	env := []string{"STRIVE_TASKID=" + task.Id}
 

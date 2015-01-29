@@ -7,6 +7,8 @@ import (
 
 type closeBuffer struct {
 	bytes.Buffer
+
+	name string
 }
 
 func (cb *closeBuffer) Close() error {
@@ -14,9 +16,18 @@ func (cb *closeBuffer) Close() error {
 }
 
 type MemLogger struct {
-	Buffer closeBuffer
+	Buffers map[string]*closeBuffer
 }
 
-func (ml *MemLogger) SetupStream(task *Task) (io.WriteCloser, error) {
-	return &ml.Buffer, nil
+func (ml *MemLogger) SetupStream(name string, task *Task) (io.WriteCloser, error) {
+
+	if ml.Buffers == nil {
+		ml.Buffers = make(map[string]*closeBuffer)
+	}
+
+	buf := &closeBuffer{name: name}
+
+	ml.Buffers[name] = buf
+
+	return buf, nil
 }

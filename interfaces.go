@@ -2,6 +2,7 @@ package strive
 
 import (
 	"io"
+	"os/exec"
 
 	backend "github.com/vektra/go-dockerclient"
 	"github.com/vektra/vega"
@@ -29,7 +30,18 @@ type MessageBusReceiver interface {
 }
 
 type Logger interface {
-	SetupStream(task *Task) (io.WriteCloser, error)
+	SetupStream(name string, task *Task) (io.WriteCloser, error)
+}
+
+type ShellLogInjector interface {
+	InjectLog(cmd *exec.Cmd, task *Task) error
+}
+
+type DockerLogInjector interface {
+	InjectDocker(
+		cfg *backend.Config,
+		hc *backend.HostConfig,
+		task *Task) error
 }
 
 type WorkSetup interface {
