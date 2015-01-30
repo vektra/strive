@@ -128,6 +128,11 @@ func (v *VKLogger) InjectDocker(
 	hc *backend.HostConfig,
 	task *Task,
 ) error {
+	val, ok := task.ConfigBoolGet("vklog.disable")
+	if ok && val {
+		return nil
+	}
+
 	cfg.Env = append(cfg.Env, "LOG_PATH="+cInContainerPath)
 	hc.Binds = append(hc.Binds, v.logpath+":"+cInContainerPath)
 	return nil

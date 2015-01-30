@@ -31,7 +31,9 @@ type TaskDescription struct {
 	Exec     []string
 	Env      map[string]string
 	URLs     []string
+	Config   map[string]interface{}
 	MetaData map[string]interface{}
+	Labels   []string
 
 	Container *ContainerDetails
 }
@@ -45,4 +47,26 @@ type Task struct {
 
 	Status     string
 	LastUpdate time.Time
+}
+
+func (t *Task) ConfigGet(key string) (interface{}, bool) {
+	if t.Description == nil || t.Description.Config == nil {
+		return nil, false
+	}
+
+	val, ok := t.Description.Config[key]
+	return val, ok
+}
+
+func (t *Task) ConfigBoolGet(key string) (bool, bool) {
+	val, ok := t.ConfigGet(key)
+	if !ok {
+		return false, false
+	}
+
+	if bval, ok := val.(bool); ok {
+		return bval, true
+	}
+
+	return false, false
 }

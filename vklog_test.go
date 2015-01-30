@@ -132,7 +132,7 @@ func TestVKLogger(t *testing.T) {
 		assert.Equal(t, greeting, "hello")
 	})
 
-	n.It("injects a listener socket to a docker container", func() {
+	n.It("injects a vklog socket to a docker container", func() {
 		de := &DockerExecutor{
 			Logger:    vk,
 			Client:    &mdc,
@@ -206,5 +206,84 @@ func TestVKLogger(t *testing.T) {
 		err = th.Wait()
 		require.NoError(t, err)
 	})
+
+	n.It("does not inject a vklog socket if config says not to", func() {
+		de := &DockerExecutor{
+			Logger:    vk,
+			Client:    &mdc,
+			WorkSetup: &mws,
+		}
+
+		task := &Task{
+			Id: "task1",
+			Description: &TaskDescription{
+				Command: "echo 'hello'",
+				Container: &ContainerDetails{
+					Image: "ubuntu",
+				},
+				Config: map[string]interface{}{
+					"vklog.disable": true,
+				},
+			},
+		}
+
+		mws.On("TaskDir", task).Return("/tmp", nil)
+
+		mdc.On("InspectImage", "ubuntu").Return(img, nil)
+
+		cco := backend.CreateContainerOptions{
+			Name: "strive-task1",
+			Config: &backend.Config{
+				Image:        "ubuntu",
+				Hostname:     "strive-task1",
+				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
+				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				WorkingDir:   "/tmp/strive-sandbox",
+				AttachStdout: true,
+				AttachStderr: true,
+			},
+		}
+
+		cont := &backend.Container{
+			ID:    "xxyyzz",
+			Image: "ubuntu",
+		}
+
+		mdc.On("CreateContainer", cco).Return(cont, nil)
+
+		out, err := vk.SetupStream("output", task)
+		require.NoError(t, err)
+
+		errstr, err := vk.SetupStream("error", task)
+		require.NoError(t, err)
+
+		attach := backend.AttachToContainerOptions{
+			Container:    cont.ID,
+			OutputStream: out,
+			ErrorStream:  errstr,
+
+			Stream: true,
+			Stdout: true,
+			Stderr: true,
+		}
+
+		mdc.On("AttachToContainer", attach).Return(nil)
+
+		hostCfg := &backend.HostConfig{
+			Binds: []string{"/tmp:/tmp/strive-sandbox"},
+		}
+
+		mdc.On("StartContainer", cont.ID, hostCfg).Return(nil)
+
+		th, err := de.Run(task)
+		require.NoError(t, err)
+
+		mdc.On("WaitContainer", cont.ID).Return(0, nil)
+		mdc.On("RemoveContainer", backend.RemoveContainerOptions{ID: cont.ID}).Return(nil)
+
+		err = th.Wait()
+		require.NoError(t, err)
+	})
+
 	n.Meow()
 }
