@@ -2,10 +2,20 @@ package strive
 
 import (
 	"encoding/json"
+	"expvar"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+)
+
+var (
+	// Counters
+	haShellRuns  = expvar.NewInt("agent.shell.runs")
+	haShellStops = expvar.NewInt("agent.shell.stops")
+
+	// Gauges
+	haShellMonitors = expvar.NewInt("agent.shell.monitors")
 )
 
 type ShellExecutor struct {
@@ -20,16 +30,20 @@ type shellHandle struct {
 }
 
 func (sh *shellHandle) Stop(force bool) error {
+	haShellStops.Add(1)
 	return sh.Process.Kill()
 }
 
 func (sh *shellHandle) Wait() error {
 	err := sh.Cmd.Wait()
+	haShellMonitors.Add(-1)
 	sh.log.Close()
 	return err
 }
 
 func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
+	haShellRuns.Add(1)
+
 	out, err := se.Logger.SetupStream("output", task)
 	if err != nil {
 		return nil, err
@@ -99,6 +113,8 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 	cmd.Env = env
 
 	cmd.Start()
+
+	haShellMonitors.Add(1)
 
 	return &shellHandle{cmd, out}, nil
 }

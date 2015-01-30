@@ -2,12 +2,25 @@ package strive
 
 import (
 	"errors"
+	"expvar"
 	"fmt"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/vektra/vega"
+)
+
+var (
+	// Counters
+	haMessages     = expvar.NewInt("agent.messages")
+	haErrors       = expvar.NewInt("agent.errors")
+	haUnknownTasks = expvar.NewInt("agent.unknown_tasks")
+	haStartTasks   = expvar.NewInt("agent.start_tasks")
+	haStopTasks    = expvar.NewInt("agent.stop_tasks")
+
+	// Gauges
+	haRunningTasks = expvar.NewInt("agent.running_tasks")
 )
 
 type HostAgent struct {
@@ -118,8 +131,12 @@ func (ha *HostAgent) process() {
 }
 
 func (ha *HostAgent) HandleMessage(vm *vega.Message) error {
+	haMessages.Add(1)
+
 	msg, err := decodeMessage(vm)
 	if err != nil {
+		haErrors.Add(1)
+
 		var em vega.Message
 		em.Type = "GenericError"
 		setBody(&em,
@@ -141,6 +158,8 @@ func (ha *HostAgent) HandleMessage(vm *vega.Message) error {
 	case *ListTasks:
 		return ha.listTasks(vm, specific)
 	}
+
+	haErrors.Add(1)
 
 	var em vega.Message
 	em.Type = "GenericError"
@@ -173,6 +192,8 @@ func (ha *HostAgent) listTasks(vm *vega.Message, lt *ListTasks) error {
 }
 
 func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
+	haStartTasks.Add(1)
+
 	var ack vega.Message
 	ack.Type = "OpAcknowledged"
 	setBody(&ack, &OpAcknowledged{st.OpId})
@@ -183,6 +204,8 @@ func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
 
 	th, err := ha.se.Run(st.Task)
 	if err != nil {
+		haErrors.Add(1)
+
 		out.Type = "TaskStatusChange"
 		setBody(&out, &TaskStatusChange{Id: st.Task.Id, Status: "error", Error: err.Error()})
 
@@ -190,6 +213,8 @@ func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
 
 		return err
 	}
+
+	haRunningTasks.Add(1)
 
 	out.Type = "TaskStatusChange"
 	setBody(&out, &TaskStatusChange{Id: st.Task.Id, Status: "running"})
@@ -201,6 +226,8 @@ func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
 		defer ha.watchwg.Done()
 
 		err := th.Wait()
+
+		haRunningTasks.Add(-1)
 
 		var out vega.Message
 		out.Type = "TaskStatusChange"
@@ -220,6 +247,8 @@ func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
 var ErrUnknownTask = errors.New("unknown task")
 
 func (ha *HostAgent) stopTask(vm *vega.Message, st *StopTask) error {
+	haStopTasks.Add(1)
+
 	var status vega.Message
 	status.Type = "OpAcknowledged"
 	setBody(&status, &OpAcknowledged{st.OpId})
@@ -228,6 +257,9 @@ func (ha *HostAgent) stopTask(vm *vega.Message, st *StopTask) error {
 
 	th, ok := ha.runningTasks[st.Id]
 	if !ok {
+		haErrors.Add(1)
+		haUnknownTasks.Add(1)
+
 		var se vega.Message
 		se.Type = "StopError"
 		setBody(&se, &StopError{OpId: st.OpId, Id: st.Id, Error: ErrUnknownTask.Error()})
@@ -239,6 +271,8 @@ func (ha *HostAgent) stopTask(vm *vega.Message, st *StopTask) error {
 
 	err := th.Stop(st.Force)
 	if err != nil {
+		haErrors.Add(1)
+
 		var se vega.Message
 		se.Type = "StopError"
 		setBody(&se, &StopError{OpId: st.OpId, Id: st.Id, Error: err.Error()})

@@ -2,6 +2,7 @@ package strive
 
 import (
 	"encoding/json"
+	"expvar"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,17 @@ import (
 	"sync"
 
 	backend "github.com/vektra/go-dockerclient"
+)
+
+var (
+	// Counters
+	haDockerStarts  = expvar.NewInt("agent.docker.runs")
+	haDockerStops   = expvar.NewInt("agent.docker.stops")
+	haDockerCreated = expvar.NewInt("agent.docker.created")
+	haDockerPulls   = expvar.NewInt("agent.docker.pulls")
+
+	// Gauges
+	haDockerMonitors = expvar.NewInt("agent.docker.monitors")
 )
 
 type DockerExecutor struct {
@@ -43,6 +55,8 @@ func (dh *dockerHandle) startLogs(out, errstr io.Writer) {
 			Stderr:       true,
 		}
 
+		haDockerMonitors.Add(1)
+
 		dh.done <- dh.de.Client.AttachToContainer(attach)
 	}()
 }
@@ -57,10 +71,14 @@ func (dh *dockerHandle) Wait() error {
 
 	dh.de.Client.RemoveContainer(backend.RemoveContainerOptions{ID: dh.cont.ID})
 
+	haDockerMonitors.Add(-1)
+
 	return err
 }
 
 func (dh *dockerHandle) Stop(force bool) error {
+	haDockerStops.Add(1)
+
 	var timeout uint
 
 	if force {
@@ -73,6 +91,8 @@ func (dh *dockerHandle) Stop(force bool) error {
 }
 
 func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
+	haDockerStarts.Add(1)
+
 	out, err := de.Logger.SetupStream("output", task)
 	if err != nil {
 		return nil, err
@@ -140,6 +160,8 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 			OutputStream: out,
 		}
 
+		haDockerPulls.Add(1)
+
 		err = de.Client.PullImage(pio, backend.AuthConfiguration{})
 
 		de.pullLock.Unlock()
@@ -197,6 +219,8 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 			return nil, err
 		}
 	}
+
+	haDockerCreated.Add(1)
 
 	cont, err := de.Client.CreateContainer(cco)
 	if err != nil {
