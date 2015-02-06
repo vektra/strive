@@ -539,6 +539,62 @@ func TestHostAgent(t *testing.T) {
 		mb.On("SendMessage", "sched", &done).Return(nil)
 	})
 
+	n.It("diffs the list of tasks and returns nothing if all tasks present", func() {
+		var vm vega.Message
+
+		vm.ReplyTo = "txn"
+		vm.Type = "CheckTasks"
+		setBody(&vm, &CheckTasks{Tasks: []string{"t1"}})
+
+		var ctl vega.Message
+		ctl.Type = "CheckedTaskList"
+		setBody(&ctl, &CheckedTaskList{Host: ha.Id})
+
+		mb.On("SendMessage", "txn", &ctl).Return(nil)
+
+		ha.runningTasks["t1"] = &th
+
+		err := ha.HandleMessage(&vm)
+		require.NoError(t, err)
+	})
+
+	n.It("diffs the list of tasks and returns ones it's missing", func() {
+		var vm vega.Message
+
+		vm.ReplyTo = "txn"
+		vm.Type = "CheckTasks"
+		setBody(&vm, &CheckTasks{Tasks: []string{"t1"}})
+
+		var ctl vega.Message
+		ctl.Type = "CheckedTaskList"
+		setBody(&ctl, &CheckedTaskList{Host: ha.Id, Missing: []string{"t1"}})
+
+		mb.On("SendMessage", "txn", &ctl).Return(nil)
+
+		err := ha.HandleMessage(&vm)
+		require.NoError(t, err)
+	})
+
+	n.It("diffs the list of tasks and returns ones it has but the request doesn't", func() {
+		var vm vega.Message
+
+		vm.ReplyTo = "txn"
+		vm.Type = "CheckTasks"
+		setBody(&vm, &CheckTasks{Tasks: []string{"t1"}})
+
+		var ctl vega.Message
+		ctl.Type = "CheckedTaskList"
+		setBody(&ctl, &CheckedTaskList{Host: ha.Id, Unknown: []string{"t2"}})
+
+		mb.On("SendMessage", "txn", &ctl).Return(nil)
+
+		ha.runningTasks["t1"] = &th
+		ha.runningTasks["t2"] = &th
+
+		err := ha.HandleMessage(&vm)
+		require.NoError(t, err)
+	})
+
 	n.Meow()
 }
 

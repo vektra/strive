@@ -8,6 +8,10 @@ import (
 	"github.com/vektra/vega"
 )
 
+type OpIdGenerator interface {
+	NextOpId() string
+}
+
 type TaskHandle interface {
 	Wait() error
 	Stop(force bool) error

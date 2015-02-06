@@ -3,6 +3,7 @@ package strive
 import (
 	"errors"
 	"expvar"
+	"sort"
 	"time"
 
 	"github.com/vektra/vega"
@@ -32,20 +33,37 @@ type state struct {
 }
 
 type Txn struct {
-	mb MessageBus
+	mb   MessageBus
+	opId OpIdGenerator
 
 	available map[string]map[string]int
 	state     *state
+
+	messages     chan *vega.Message
+	shutdown     chan bool
+	done         chan error
+	entropyTimer time.Duration
 }
 
-func NewTxn(mb MessageBus) *Txn {
+type TxnConfig struct {
+	Bus          MessageBus
+	OpId         OpIdGenerator
+	EntropyTimer time.Duration
+}
+
+func NewTxn(cfg *TxnConfig) *Txn {
 	return &Txn{
-		mb:        mb,
-		available: make(map[string]map[string]int),
+		mb:           cfg.Bus,
+		opId:         cfg.OpId,
+		entropyTimer: cfg.EntropyTimer,
+		available:    make(map[string]map[string]int),
 		state: &state{
 			Hosts: make(map[string]*Host),
 			Tasks: make(map[string]*Task),
 		},
+		messages: make(chan *vega.Message, cReceiveBacklog),
+		shutdown: make(chan bool),
+		done:     make(chan error),
 	}
 }
 
@@ -64,6 +82,8 @@ func (t *Txn) HandleMessage(vm *vega.Message) error {
 		return t.updateHost(specific)
 	case *TaskStatusChange:
 		return t.updateTask(specific)
+	case *CheckedTaskList:
+		return t.checkTasks(specific)
 	}
 
 	return ErrUnknownMessage
@@ -189,5 +209,82 @@ func (t *Txn) checkHeartbeats(dur time.Duration) error {
 		}
 	}
 
+	return nil
+}
+
+func (t *Txn) PerformAntiEntropy() {
+	hostTasks := map[string][]string{}
+
+	for id, task := range t.state.Tasks {
+		hostTasks[task.Host] = append(hostTasks[task.Host], id)
+	}
+
+	for host, tasks := range hostTasks {
+		sort.Strings(tasks)
+
+		var vm vega.Message
+
+		vm.Type = "CheckTasks"
+		setBody(&vm, &CheckTasks{Tasks: tasks})
+
+		t.mb.SendMessage(host, &vm)
+	}
+}
+
+func (t *Txn) checkTasks(ctl *CheckedTaskList) error {
+	for _, id := range ctl.Missing {
+		task := t.state.Tasks[id]
+
+		if task.Status == "created" || task.Status == "running" {
+			var vm vega.Message
+
+			vm.Type = "StartTask"
+			setBody(&vm, &StartTask{OpId: t.opId.NextOpId(), Task: task})
+
+			t.mb.SendMessage(task.Host, &vm)
+		}
+	}
+
+	for _, id := range ctl.Unknown {
+		var vm vega.Message
+
+		vm.Type = "StopTask"
+		setBody(&vm, &StopTask{OpId: t.opId.NextOpId(), Id: id, Force: true})
+
+		t.mb.SendMessage(ctl.Host, &vm)
+	}
+
+	return nil
+}
+
+func (t *Txn) Process() {
+	tick := time.NewTicker(t.entropyTimer)
+
+	for {
+		select {
+		case m := <-t.messages:
+			t.HandleMessage(m)
+		case <-tick.C:
+			t.PerformAntiEntropy()
+		case <-t.shutdown:
+			close(t.done)
+			return
+		}
+	}
+}
+
+func (t *Txn) InjectMessage(vm *vega.Message) {
+	t.messages <- vm
+}
+
+func (t *Txn) Close() error {
+	select {
+	case t.shutdown <- true:
+		// nothing
+	default:
+		close(t.shutdown)
+	}
+
+	<-t.done
 	return nil
 }

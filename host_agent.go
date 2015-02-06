@@ -157,6 +157,8 @@ func (ha *HostAgent) HandleMessage(vm *vega.Message) error {
 		return ha.stopTask(vm, specific)
 	case *ListTasks:
 		return ha.listTasks(vm, specific)
+	case *CheckTasks:
+		return ha.checkTasks(vm, specific)
 	}
 
 	haErrors.Add(1)
@@ -283,6 +285,39 @@ func (ha *HostAgent) stopTask(vm *vega.Message, st *StopTask) error {
 	}
 
 	return nil
+}
+
+func (ha *HostAgent) checkTasks(vm *vega.Message, ct *CheckTasks) error {
+	var missing []string
+
+	for _, id := range ct.Tasks {
+		if _, ok := ha.runningTasks[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+
+	var unknown []string
+
+	for local, _ := range ha.runningTasks {
+		found := false
+
+		for _, remote := range ct.Tasks {
+			if local == remote {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			unknown = append(unknown, local)
+		}
+	}
+
+	var out vega.Message
+	out.Type = "CheckedTaskList"
+	setBody(&out, &CheckedTaskList{Host: ha.Id, Missing: missing, Unknown: unknown})
+
+	return ha.mb.SendMessage(vm.ReplyTo, &out)
 }
 
 func (ha *HostAgent) SendHeartbeat(mailbox string) error {

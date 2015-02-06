@@ -13,15 +13,19 @@ import (
 func TestTxn(t *testing.T) {
 	n := neko.Start(t)
 
-	var mb MockMessageBus
-	var vm *vega.Message
-	var txn *Txn
+	var (
+		mb   MockMessageBus
+		opid MockOpIdGenerator
+		vm   *vega.Message
+		txn  *Txn
+	)
 
 	n.CheckMock(&mb.Mock)
+	n.CheckMock(&opid.Mock)
 
 	n.Setup(func() {
 		vm = &vega.Message{}
-		txn = NewTxn(&mb)
+		txn = NewTxn(&TxnConfig{&mb, &opid, 2 * time.Minute})
 	})
 
 	set := func(us *UpdateState) {
@@ -329,6 +333,156 @@ func TestTxn(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.True(t, txn.state.Tasks["t1"].LastUpdate.After(now))
+	})
+
+	n.It("detects and starts missing tasks on agents", func() {
+		task := &Task{
+			Id:        "t1",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "created",
+		}
+
+		txn.state.Tasks["t1"] = task
+
+		vm.Type = "CheckTasks"
+		setBody(vm, &CheckTasks{Tasks: []string{"t1"}})
+
+		mb.On("SendMessage", "h1", vm).Return(nil)
+
+		txn.PerformAntiEntropy()
+
+		run := &vega.Message{}
+
+		run.Type = "CheckedTaskList"
+		setBody(run, &CheckedTaskList{Missing: []string{"t1"}})
+
+		opid.On("NextOpId").Return("foo1")
+
+		start := &vega.Message{}
+		start.Type = "StartTask"
+		setBody(start, &StartTask{OpId: "foo1", Task: task})
+
+		mb.On("SendMessage", "h1", start).Return(nil)
+
+		err := txn.HandleMessage(run)
+		require.NoError(t, err)
+	})
+
+	n.It("aggregates task ids when sending CheckTasks", func() {
+		task := &Task{
+			Id:        "t1",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "created",
+		}
+
+		txn.state.Tasks["t1"] = task
+
+		task2 := &Task{
+			Id:        "t2",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "created",
+		}
+
+		txn.state.Tasks["t2"] = task2
+
+		vm.Type = "CheckTasks"
+		setBody(vm, &CheckTasks{Tasks: []string{"t1", "t2"}})
+
+		mb.On("SendMessage", "h1", vm).Return(nil)
+
+		txn.PerformAntiEntropy()
+	})
+
+	n.It("stops unknown tasks", func() {
+		task := &Task{
+			Id:        "t1",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "created",
+		}
+
+		txn.state.Tasks["t1"] = task
+
+		run := &vega.Message{}
+
+		run.Type = "CheckedTaskList"
+		setBody(run, &CheckedTaskList{Host: "h1", Unknown: []string{"t2"}})
+
+		opid.On("NextOpId").Return("foo1")
+
+		start := &vega.Message{}
+		start.Type = "StopTask"
+		setBody(start, &StopTask{OpId: "foo1", Id: "t2", Force: true})
+
+		mb.On("SendMessage", "h1", start).Return(nil)
+
+		err := txn.HandleMessage(run)
+		require.NoError(t, err)
+	})
+
+	n.It("only starts created or running tasks", func() {
+		task1 := &Task{
+			Id:        "t1",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "created",
+		}
+
+		txn.state.Tasks["t1"] = task1
+
+		task2 := &Task{
+			Id:        "t2",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "running",
+		}
+
+		txn.state.Tasks["t2"] = task2
+
+		task3 := &Task{
+			Id:        "t3",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "finished",
+		}
+
+		txn.state.Tasks["t3"] = task3
+
+		task4 := &Task{
+			Id:        "t4",
+			Scheduler: "s1",
+			Host:      "h1",
+			Status:    "failed",
+		}
+
+		txn.state.Tasks["t4"] = task4
+
+		run := &vega.Message{}
+
+		run.Type = "CheckedTaskList"
+		setBody(run, &CheckedTaskList{Missing: []string{"t1", "t2", "t3", "t4"}})
+
+		opid.On("NextOpId").Return("foo1")
+
+		start := &vega.Message{}
+		start.Type = "StartTask"
+		setBody(start, &StartTask{OpId: "foo1", Task: task1})
+
+		mb.On("SendMessage", "h1", start).Return(nil)
+
+		opid.On("NextOpId").Return("foo1")
+
+		start2 := &vega.Message{}
+		start2.Type = "StartTask"
+		setBody(start2, &StartTask{OpId: "foo1", Task: task2})
+
+		mb.On("SendMessage", "h1", start2).Return(nil)
+
+		err := txn.HandleMessage(run)
+		require.NoError(t, err)
 	})
 
 	n.Meow()

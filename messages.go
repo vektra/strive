@@ -56,6 +56,16 @@ type GenericError struct {
 	Error string
 }
 
+type CheckTasks struct {
+	Tasks []string
+}
+
+type CheckedTaskList struct {
+	Host    string
+	Missing []string
+	Unknown []string
+}
+
 var ErrUnknownMessage = errors.New("unknown message")
 
 func decodeMessage(vm *vega.Message) (interface{}, error) {
@@ -114,6 +124,24 @@ func decodeMessage(vm *vega.Message) (interface{}, error) {
 		}
 
 		return &lt, nil
+	case "CheckTasks":
+		var ct CheckTasks
+
+		err := json.Unmarshal(vm.Body, &ct)
+		if err != nil {
+			return nil, err
+		}
+
+		return &ct, nil
+	case "CheckedTaskList":
+		var ct CheckedTaskList
+
+		err := json.Unmarshal(vm.Body, &ct)
+		if err != nil {
+			return nil, err
+		}
+
+		return &ct, nil
 	default:
 		return nil, ErrUnknownMessage
 	}
