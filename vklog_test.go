@@ -4,6 +4,8 @@ import (
 	"sync"
 	"testing"
 
+	"code.google.com/p/goprotobuf/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	backend "github.com/vektra/go-dockerclient"
@@ -46,9 +48,9 @@ func TestVKLogger(t *testing.T) {
 	}
 
 	task := &Task{
-		Id: "task1",
+		TaskId: proto.String("task1"),
 		Description: &TaskDescription{
-			Command: "echo 'hello'",
+			Command: proto.String("echo 'hello'"),
 		},
 	}
 
@@ -109,7 +111,7 @@ func TestVKLogger(t *testing.T) {
 	n.It("injects a stream to manage native messages", func() {
 		task := &Task{
 			Description: &TaskDescription{
-				Command: `echo '> greeting="hello"' > /dev/fd/3`,
+				Command: proto.String(`echo '> greeting="hello"' > /dev/fd/3`),
 			},
 		}
 
@@ -140,11 +142,11 @@ func TestVKLogger(t *testing.T) {
 		}
 
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo 'hello'",
-				Container: &ContainerDetails{
-					Image: "ubuntu",
+				Command: proto.String("echo 'hello'"),
+				Container: &ContainerInfo{
+					Image: proto.String("ubuntu"),
 				},
 			},
 		}
@@ -159,7 +161,7 @@ func TestVKLogger(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id, "LOG_PATH=/tmp/vklog.sock"},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId(), "LOG_PATH=/tmp/vklog.sock"},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -215,14 +217,17 @@ func TestVKLogger(t *testing.T) {
 		}
 
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo 'hello'",
-				Container: &ContainerDetails{
-					Image: "ubuntu",
+				Command: proto.String("echo 'hello'"),
+				Container: &ContainerInfo{
+					Image: proto.String("ubuntu"),
 				},
-				Config: map[string]interface{}{
-					"vklog.disable": true,
+				Config: []*Variable{
+					{
+						Name:  proto.String("vklog.disable"),
+						Value: NewBoolValue(true),
+					},
 				},
 			},
 		}
@@ -237,7 +242,7 @@ func TestVKLogger(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,

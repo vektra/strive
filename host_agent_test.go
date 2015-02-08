@@ -3,17 +3,18 @@ package strive
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
+
+	"code.google.com/p/goprotobuf/proto"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vektra/neko"
-	"github.com/vektra/vega"
+	"github.com/vektra/tai64n"
 )
 
-func setBody(vm *vega.Message, msg interface{}) {
+func setBody(vm *Message, msg interface{}) {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
@@ -34,30 +35,39 @@ func TestHostAgent(t *testing.T) {
 	n.CheckMock(&th.Mock)
 
 	task := &Task{
-		Id: "task1",
-		Resources: map[string]TaskResources{
-			"t1": TaskResources{
-				"cpu": 1,
-				"mem": 512,
+		TaskId: proto.String("task1"),
+		Resources: []*HostResource{
+			{
+				HostId: proto.String("t1"),
+				Resources: []*Resource{
+					{
+						Type:  Resource_CPU.Enum(),
+						Value: NewIntValue(1),
+					},
+					{
+						Type:  Resource_MEMORY.Enum(),
+						Value: NewIntValue(512),
+					},
+				},
 			},
 		},
 
 		Description: &TaskDescription{
-			Command: "date",
+			Command: proto.String("date"),
 		},
 
-		LastUpdate: time.Now(),
+		LastUpdate: tai64n.Now(),
 	}
 
 	startMsg := &StartTask{
-		OpId: "1",
+		OpId: proto.String("1"),
 		Task: task,
 	}
 
 	stopMsg := &StopTask{
-		OpId:  "2",
-		Id:    task.Id,
-		Force: false,
+		OpId:   proto.String("2"),
+		TaskId: task.TaskId,
+		Force:  proto.Bool(false),
 	}
 
 	/*
@@ -66,6 +76,14 @@ func TestHostAgent(t *testing.T) {
 			Force: true,
 		}
 	*/
+
+	start := startMsg.Encode()
+	start.ReplyTo = "sched"
+
+	ack := OpAcknowledged{OpId: startMsg.OpId}.Encode()
+
+	stop := stopMsg.Encode()
+	stop.ReplyTo = "sched"
 
 	var ha *HostAgent
 
@@ -79,284 +97,209 @@ func TestHostAgent(t *testing.T) {
 	})
 
 	n.It("starts new tasks", func() {
-		var vm vega.Message
+		out := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_RUNNING.Enum(),
+		}.Encode()
 
-		body, err := json.Marshal(startMsg)
-		require.NoError(t, err)
+		mb.On("SendMessage", "sched", out).Return(nil)
 
-		vm.ReplyTo = "sched"
-		vm.Type = "StartTask"
-		vm.Body = body
+		mb.On("SendMessage", "sched", ack).Return(nil)
 
-		var out vega.Message
-		out.Type = "TaskStatusChange"
-		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "running"})
+		done := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_FINISHED.Enum(),
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &out).Return(nil)
-
-		var ack vega.Message
-		ack.Type = "OpAcknowledged"
-		setBody(&ack, &OpAcknowledged{startMsg.OpId})
-
-		mb.On("SendMessage", "sched", &ack).Return(nil)
-
-		var done vega.Message
-		done.Type = "TaskStatusChange"
-		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "finished"})
-
-		mb.On("SendMessage", "sched", &done).Return(nil)
+		mb.On("SendMessage", "sched", done).Return(nil)
 
 		te.On("Run", task).Return(&th, nil)
 		th.On("Wait").Return(nil)
 
-		err = ha.HandleMessage(&vm)
+		err := ha.HandleMessage(start)
 		require.NoError(t, err)
 
 		ha.WaitTilIdle()
 	})
 
 	n.It("sends a status change when the task ends", func() {
-		var vm vega.Message
+		mb.On("SendMessage", "sched", ack).Return(nil)
 
-		body, err := json.Marshal(startMsg)
-		require.NoError(t, err)
+		out := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_RUNNING.Enum(),
+		}.Encode()
 
-		vm.ReplyTo = "sched"
-		vm.Type = "StartTask"
-		vm.Body = body
-
-		var ack vega.Message
-		ack.Type = "OpAcknowledged"
-		setBody(&ack, &OpAcknowledged{startMsg.OpId})
-
-		mb.On("SendMessage", "sched", &ack).Return(nil)
-
-		var out vega.Message
-		out.Type = "TaskStatusChange"
-		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "running"})
-
-		mb.On("SendMessage", "sched", &out).Return(nil)
+		mb.On("SendMessage", "sched", out).Return(nil)
 		te.On("Run", task).Return(&th, nil)
 		th.On("Wait").Return(nil)
 
-		var done vega.Message
-		done.Type = "TaskStatusChange"
-		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "finished"})
+		done := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_FINISHED.Enum(),
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &done).Return(nil)
+		mb.On("SendMessage", "sched", done).Return(nil)
 
-		err = ha.HandleMessage(&vm)
+		err := ha.HandleMessage(start)
 		require.NoError(t, err)
 
 		ha.WaitTilIdle()
 	})
 
 	n.It("sends a status change if run errors out", func() {
-		var vm vega.Message
+		mb.On("SendMessage", "sched", ack).Return(nil)
 
-		body, err := json.Marshal(startMsg)
-		require.NoError(t, err)
-
-		vm.ReplyTo = "sched"
-		vm.Type = "StartTask"
-		vm.Body = body
-
-		var ack vega.Message
-		ack.Type = "OpAcknowledged"
-		setBody(&ack, &OpAcknowledged{startMsg.OpId})
-
-		mb.On("SendMessage", "sched", &ack).Return(nil)
-
-		var out vega.Message
-		out.Type = "TaskStatusChange"
-		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "error", Error: "unable to start"})
+		out := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_ERROR.Enum(),
+			Error:  proto.String("unable to start"),
+		}.Encode()
 
 		exp := errors.New("unable to start")
 
-		mb.On("SendMessage", "sched", &out).Return(nil)
+		mb.On("SendMessage", "sched", out).Return(nil)
 		te.On("Run", task).Return(&th, exp)
 
-		err = ha.HandleMessage(&vm)
+		err := ha.HandleMessage(start)
 		assert.Equal(t, err, exp)
 	})
 
 	n.It("sends a status change if wait errors out", func() {
-		var vm vega.Message
+		mb.On("SendMessage", "sched", ack).Return(nil)
 
-		body, err := json.Marshal(startMsg)
-		require.NoError(t, err)
-
-		vm.ReplyTo = "sched"
-		vm.Type = "StartTask"
-		vm.Body = body
-
-		var ack vega.Message
-		ack.Type = "OpAcknowledged"
-		setBody(&ack, &OpAcknowledged{startMsg.OpId})
-
-		mb.On("SendMessage", "sched", &ack).Return(nil)
-
-		var out vega.Message
-		out.Type = "TaskStatusChange"
-		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "running"})
+		out := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_RUNNING.Enum(),
+		}.Encode()
 
 		exp := errors.New("unable to start")
 
-		mb.On("SendMessage", "sched", &out).Return(nil)
+		mb.On("SendMessage", "sched", out).Return(nil)
 		te.On("Run", task).Return(&th, nil)
 		th.On("Wait").Return(exp)
 
-		var done vega.Message
-		done.Type = "TaskStatusChange"
-		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "failed", Error: "unable to start"})
+		done := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_FAILED.Enum(),
+			Error:  proto.String("unable to start"),
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &done).Return(nil)
+		mb.On("SendMessage", "sched", done).Return(nil)
 
-		err = ha.HandleMessage(&vm)
+		err := ha.HandleMessage(start)
 		require.NoError(t, err)
 
 		ha.WaitTilIdle()
 	})
 
 	n.It("can stop a task that is running", func() {
-		var vm vega.Message
-
-		vm.ReplyTo = "sched"
-		vm.Type = "StopTask"
-		setBody(&vm, stopMsg)
-
-		var status vega.Message
-		status.Type = "OpAcknowledged"
-		setBody(&status, &OpAcknowledged{stopMsg.OpId})
+		status := OpAcknowledged{OpId: stopMsg.OpId}.Encode()
 
 		ha.runningTasks["task1"] = &th
 
 		th.On("Stop", false).Return(nil)
-		mb.On("SendMessage", "sched", &status).Return(nil)
+		mb.On("SendMessage", "sched", status).Return(nil)
 
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(stop)
 		require.NoError(t, err)
 
 		ha.WaitTilIdle()
 	})
 
 	n.It("sends an error message if the task is unknown", func() {
-		var status vega.Message
-		status.Type = "OpAcknowledged"
-		setBody(&status, &OpAcknowledged{stopMsg.OpId})
+		status := OpAcknowledged{OpId: stopMsg.OpId}.Encode()
 
-		var vm vega.Message
+		se := StopError{
+			OpId:   stopMsg.OpId,
+			TaskId: stopMsg.TaskId,
+			Error:  UnknownTask(stopMsg.GetTaskId()),
+		}.Encode()
 
-		vm.ReplyTo = "sched"
-		vm.Type = "StopTask"
-		setBody(&vm, stopMsg)
+		mb.On("SendMessage", "sched", status).Return(nil)
+		mb.On("SendMessage", "sched", se).Return(nil)
 
-		var se vega.Message
-
-		se.Type = "StopError"
-		setBody(&se, &StopError{OpId: stopMsg.OpId, Id: stopMsg.Id, Error: "unknown task"})
-
-		mb.On("SendMessage", "sched", &status).Return(nil)
-		mb.On("SendMessage", "sched", &se).Return(nil)
-
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(stop)
 		require.Equal(t, err, ErrUnknownTask)
 	})
 
 	n.It("reports an error if stop errors out", func() {
-		var vm vega.Message
-
-		vm.ReplyTo = "sched"
-		vm.Type = "StopTask"
-		setBody(&vm, stopMsg)
-
-		var status vega.Message
-		status.Type = "OpAcknowledged"
-		setBody(&status, &OpAcknowledged{stopMsg.OpId})
+		status := OpAcknowledged{OpId: stopMsg.OpId}.Encode()
 
 		ha.runningTasks["task1"] = &th
 
 		fe := errors.New("unable to stop")
 
-		var se vega.Message
-		se.Type = "StopError"
-		setBody(&se, &StopError{OpId: stopMsg.OpId, Id: stopMsg.Id, Error: fe.Error()})
+		se := StopError{
+			OpId:   stopMsg.OpId,
+			TaskId: stopMsg.TaskId,
+			Error:  UnknownError(fe.Error()),
+		}.Encode()
 
 		th.On("Stop", false).Return(fe)
-		mb.On("SendMessage", "sched", &status).Return(nil)
-		mb.On("SendMessage", "sched", &se).Return(nil)
+		mb.On("SendMessage", "sched", status).Return(nil)
+		mb.On("SendMessage", "sched", se).Return(nil)
 
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(stop)
 		require.Equal(t, err, fe)
 
 		ha.WaitTilIdle()
 	})
 
 	n.It("can list the tasks it is running", func() {
-		var vm vega.Message
-
-		vm.ReplyTo = "sched"
-		vm.Type = "ListTasks"
-		setBody(&vm, &ListTasks{OpId: "3"})
+		list := ListTasks{OpId: proto.String("3")}.Encode()
+		list.ReplyTo = "sched"
 
 		ha.runningTasks["task1"] = &th
 		ha.runningTasks["task2"] = &th
 
-		var list vega.Message
-		list.Type = "CurrentTasks"
-		setBody(&list, &CurrentTasks{"3", []string{"task1", "task2"}})
+		cur := CurrentTasks{
+			OpId:    proto.String("3"),
+			TaskIds: []string{"task1", "task2"},
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &list).Return(nil)
+		mb.On("SendMessage", "sched", cur).Return(nil)
 
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(list)
 		require.NoError(t, err)
 	})
 
 	n.It("sends a generic error message when it can't decode a message", func() {
-		var vm vega.Message
+		var vm Message
 		vm.ReplyTo = "sched"
 		vm.Type = "NotARealMessageType"
 
-		var em vega.Message
-		em.Type = "GenericError"
-		setBody(&em,
-			&GenericError{
-				fmt.Sprintf("%s: %s", ErrUnknownMessage.Error(), vm.Type),
-			},
-		)
+		em := GenericError{
+			Error: UnknownMessage(vm.Type),
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &em).Return(nil)
+		mb.On("SendMessage", "sched", em).Return(nil)
 
 		err := ha.HandleMessage(&vm)
 		require.Equal(t, err, ErrUnknownMessage)
 	})
 
 	n.It("sends a generic error message when it doesn't handle a message", func() {
-		var vm vega.Message
-		vm.ReplyTo = "sched"
-		vm.Type = "TaskStatusChange"
-		setBody(&vm, &TaskStatusChange{})
+		sc := TaskStatusChange{}.Encode()
+		sc.ReplyTo = "sched"
 
-		var em vega.Message
-		em.Type = "GenericError"
-		setBody(&em,
-			&GenericError{
-				fmt.Sprintf("%s: %s", ErrUnknownMessage.Error(), vm.Type),
-			},
-		)
+		em := GenericError{
+			Error: UnknownMessage(sc.Type),
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &em).Return(nil)
+		mb.On("SendMessage", "sched", em).Return(nil)
 
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(sc)
 		require.Equal(t, err, ErrUnknownMessage)
 	})
 
 	n.It("sends host status change messages at an interval", func() {
-		var vm vega.Message
-		vm.Type = "HostStatusChange"
-		setBody(&vm, &HostStatusChange{Status: "online"})
+		sc := HostStatusChange{
+			Status: HostStatus_ONLINE.Enum(),
+			HostId: &ha.Id,
+		}.Encode()
 
-		mb.On("SendMessage", "txn", &vm).Return(nil)
+		mb.On("SendMessage", "txn", sc).Return(nil)
 
 		err := ha.SendHeartbeat("txn")
 		require.NoError(t, err)
@@ -368,29 +311,29 @@ func TestHostAgent(t *testing.T) {
 
 		go ha.process()
 
-		var vm vega.Message
-		vm.Type = "HostStatusChange"
-		setBody(&vm, &HostStatusChange{Status: "online"})
-
-		mb.On("SendMessage", "txn", &vm).Return(nil)
+		sc := HostStatusChange{
+			Status: HostStatus_ONLINE.Enum(),
+			HostId: &ha.Id,
+		}.Encode()
+		mb.On("SendMessage", "txn", sc).Return(nil)
 
 		time.Sleep(100 * time.Millisecond)
 	})
 
 	n.It("sends an offline message when shutdown", func() {
-		var dis vega.Message
-		dis.Type = "HostStatusChange"
+		dis := HostStatusChange{
+			Status: HostStatus_DISABLED.Enum(),
+			HostId: &ha.Id,
+		}.Encode()
 
-		setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
+		mb.On("SendMessage", "txn", dis).Return(nil)
 
-		mb.On("SendMessage", "txn", &dis).Return(nil)
+		off := HostStatusChange{
+			Status: HostStatus_OFFLINE.Enum(),
+			HostId: proto.String(ha.Id),
+		}.Encode()
 
-		var vm vega.Message
-		vm.Type = "HostStatusChange"
-
-		setBody(&vm, &HostStatusChange{Status: "offline", Host: ha.Id})
-
-		mb.On("SendMessage", "txn", &vm).Return(nil)
+		mb.On("SendMessage", "txn", off).Return(nil)
 
 		ha.Close()
 	})
@@ -406,36 +349,24 @@ func TestHostAgent(t *testing.T) {
 
 		go ha.process()
 
-		var vm vega.Message
+		out := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_RUNNING.Enum(),
+		}.Encode()
 
-		body, err := json.Marshal(startMsg)
+		mb.On("SendMessage", "sched", out).Return(nil)
+
+		mb.On("SendMessage", "sched", ack).Return(nil)
+
+		err := ha.HandleMessage(start)
 		require.NoError(t, err)
 
-		vm.ReplyTo = "sched"
-		vm.Type = "StartTask"
-		vm.Body = body
+		dis := HostStatusChange{
+			Status: HostStatus_DISABLED.Enum(),
+			HostId: proto.String(ha.Id),
+		}.Encode()
 
-		var out vega.Message
-		out.Type = "TaskStatusChange"
-		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "running"})
-
-		mb.On("SendMessage", "sched", &out).Return(nil)
-
-		var ack vega.Message
-		ack.Type = "OpAcknowledged"
-		setBody(&ack, &OpAcknowledged{startMsg.OpId})
-
-		mb.On("SendMessage", "sched", &ack).Return(nil)
-
-		err = ha.HandleMessage(&vm)
-		require.NoError(t, err)
-
-		var dis vega.Message
-		dis.Type = "HostStatusChange"
-
-		setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
-
-		mb.On("SendMessage", "txn", &dis).Return(nil)
+		mb.On("SendMessage", "txn", dis).Return(nil)
 
 		ha.Shutdown()
 
@@ -444,18 +375,19 @@ func TestHostAgent(t *testing.T) {
 
 		mb.AssertExpectations(t)
 
-		var done vega.Message
-		done.Type = "TaskStatusChange"
-		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "finished"})
+		done := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_FINISHED.Enum(),
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &done).Return(nil)
+		mb.On("SendMessage", "sched", done).Return(nil)
 
-		var hcm vega.Message
-		hcm.Type = "HostStatusChange"
+		hcm := HostStatusChange{
+			Status: HostStatus_OFFLINE.Enum(),
+			HostId: proto.String(ha.Id),
+		}.Encode()
 
-		setBody(&hcm, &HostStatusChange{Status: "offline", Host: ha.Id})
-
-		mb.On("SendMessage", "txn", &hcm).Return(nil)
+		mb.On("SendMessage", "txn", hcm).Return(nil)
 
 		select {
 		case <-sleepTe.C:
@@ -478,36 +410,24 @@ func TestHostAgent(t *testing.T) {
 
 		go ha.process()
 
-		var vm vega.Message
+		out := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_RUNNING.Enum(),
+		}.Encode()
 
-		body, err := json.Marshal(startMsg)
+		mb.On("SendMessage", "sched", out).Return(nil)
+
+		mb.On("SendMessage", "sched", ack).Return(nil)
+
+		err := ha.HandleMessage(start)
 		require.NoError(t, err)
 
-		vm.ReplyTo = "sched"
-		vm.Type = "StartTask"
-		vm.Body = body
+		dis := HostStatusChange{
+			Status: HostStatus_DISABLED.Enum(),
+			HostId: proto.String(ha.Id),
+		}.Encode()
 
-		var out vega.Message
-		out.Type = "TaskStatusChange"
-		setBody(&out, &TaskStatusChange{Id: task.Id, Status: "running"})
-
-		mb.On("SendMessage", "sched", &out).Return(nil)
-
-		var ack vega.Message
-		ack.Type = "OpAcknowledged"
-		setBody(&ack, &OpAcknowledged{startMsg.OpId})
-
-		mb.On("SendMessage", "sched", &ack).Return(nil)
-
-		err = ha.HandleMessage(&vm)
-		require.NoError(t, err)
-
-		var dis vega.Message
-		dis.Type = "HostStatusChange"
-
-		setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
-
-		mb.On("SendMessage", "txn", &dis).Return(nil)
+		mb.On("SendMessage", "txn", dis).Return(nil)
 
 		ha.Shutdown()
 
@@ -518,12 +438,12 @@ func TestHostAgent(t *testing.T) {
 
 		ha.Shutdown()
 
-		var hcm vega.Message
-		hcm.Type = "HostStatusChange"
+		hcm := HostStatusChange{
+			Status: HostStatus_OFFLINE.Enum(),
+			HostId: proto.String(ha.Id),
+		}.Encode()
 
-		setBody(&hcm, &HostStatusChange{Status: "offline", Host: ha.Id})
-
-		mb.On("SendMessage", "txn", &hcm).Return(nil)
+		mb.On("SendMessage", "txn", hcm).Return(nil)
 
 		// We need the shutdown code to run again
 		time.Sleep(10 * time.Millisecond)
@@ -532,66 +452,58 @@ func TestHostAgent(t *testing.T) {
 
 		// In the background, it will eventually finish so we need to put
 		// this here.
-		var done vega.Message
-		done.Type = "TaskStatusChange"
-		setBody(&done, &TaskStatusChange{Id: task.Id, Status: "finished"})
+		done := TaskStatusChange{
+			TaskId: task.TaskId,
+			Status: TaskStatus_FINISHED.Enum(),
+		}.Encode()
 
-		mb.On("SendMessage", "sched", &done).Return(nil)
+		mb.On("SendMessage", "sched", done).Return(nil)
 	})
 
 	n.It("diffs the list of tasks and returns nothing if all tasks present", func() {
-		var vm vega.Message
-
+		vm := CheckTasks{TaskIds: []string{"t1"}}.Encode()
 		vm.ReplyTo = "txn"
-		vm.Type = "CheckTasks"
-		setBody(&vm, &CheckTasks{Tasks: []string{"t1"}})
 
-		var ctl vega.Message
-		ctl.Type = "CheckedTaskList"
-		setBody(&ctl, &CheckedTaskList{Host: ha.Id})
+		ctl := CheckedTaskList{HostId: proto.String(ha.Id)}.Encode()
 
-		mb.On("SendMessage", "txn", &ctl).Return(nil)
+		mb.On("SendMessage", "txn", ctl).Return(nil)
 
 		ha.runningTasks["t1"] = &th
 
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(vm)
 		require.NoError(t, err)
 	})
 
 	n.It("diffs the list of tasks and returns ones it's missing", func() {
-		var vm vega.Message
-
+		vm := CheckTasks{TaskIds: []string{"t1"}}.Encode()
 		vm.ReplyTo = "txn"
-		vm.Type = "CheckTasks"
-		setBody(&vm, &CheckTasks{Tasks: []string{"t1"}})
 
-		var ctl vega.Message
-		ctl.Type = "CheckedTaskList"
-		setBody(&ctl, &CheckedTaskList{Host: ha.Id, Missing: []string{"t1"}})
+		ctl := CheckedTaskList{
+			HostId:  proto.String(ha.Id),
+			Missing: []string{"t1"},
+		}.Encode()
 
-		mb.On("SendMessage", "txn", &ctl).Return(nil)
+		mb.On("SendMessage", "txn", ctl).Return(nil)
 
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(vm)
 		require.NoError(t, err)
 	})
 
 	n.It("diffs the list of tasks and returns ones it has but the request doesn't", func() {
-		var vm vega.Message
-
+		vm := CheckTasks{TaskIds: []string{"t1"}}.Encode()
 		vm.ReplyTo = "txn"
-		vm.Type = "CheckTasks"
-		setBody(&vm, &CheckTasks{Tasks: []string{"t1"}})
 
-		var ctl vega.Message
-		ctl.Type = "CheckedTaskList"
-		setBody(&ctl, &CheckedTaskList{Host: ha.Id, Unknown: []string{"t2"}})
+		ctl := CheckedTaskList{
+			HostId:  proto.String(ha.Id),
+			Unknown: []string{"t2"},
+		}.Encode()
 
-		mb.On("SendMessage", "txn", &ctl).Return(nil)
+		mb.On("SendMessage", "txn", ctl).Return(nil)
 
 		ha.runningTasks["t1"] = &th
 		ha.runningTasks["t2"] = &th
 
-		err := ha.HandleMessage(&vm)
+		err := ha.HandleMessage(vm)
 		require.NoError(t, err)
 	})
 

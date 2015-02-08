@@ -59,7 +59,7 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
-	for _, url := range task.Description.URLs {
+	for _, url := range task.Description.Urls {
 		err = se.WorkSetup.DownloadURL(url, dir)
 		if err != nil {
 			return nil, err
@@ -71,10 +71,10 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
-	if task.Description.MetaData == nil {
+	if task.Description.Metadata == nil {
 		f.Write([]byte("{}\n"))
 	} else {
-		err = json.NewEncoder(f).Encode(task.Description.MetaData)
+		err = json.NewEncoder(f).Encode(JSONVariables(task.Description.Metadata))
 	}
 
 	f.Close()
@@ -90,7 +90,7 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 
 		cmd = exec.Command(args[0], args[1:]...)
 	} else {
-		cmd = exec.Command("bash", "-c", task.Description.Command)
+		cmd = exec.Command("bash", "-c", task.Description.GetCommand())
 	}
 
 	cmd.Dir = dir
@@ -104,10 +104,10 @@ func (se *ShellExecutor) Run(task *Task) (TaskHandle, error) {
 		}
 	}
 
-	env := []string{"STRIVE_TASKID=" + task.Id}
+	env := []string{"STRIVE_TASKID=" + task.GetTaskId()}
 
-	for k, v := range task.Description.Env {
-		env = append(env, k+"="+v)
+	for _, v := range task.Description.Env {
+		env = append(env, v.StringKV())
 	}
 
 	cmd.Env = env

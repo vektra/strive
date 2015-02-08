@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.google.com/p/goprotobuf/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vektra/neko"
@@ -21,7 +23,7 @@ func TestShellExecutor(t *testing.T) {
 	n.It("runs a command", func() {
 		task := &Task{
 			Description: &TaskDescription{
-				Command: "echo 'hello'",
+				Command: proto.String("echo 'hello'"),
 			},
 		}
 
@@ -71,7 +73,7 @@ func TestShellExecutor(t *testing.T) {
 	n.It("sets up a workdir for the task", func() {
 		task := &Task{
 			Description: &TaskDescription{
-				Command: "pwd",
+				Command: proto.String("pwd"),
 			},
 		}
 
@@ -104,9 +106,9 @@ func TestShellExecutor(t *testing.T) {
 	n.It("pass environment variables to the command", func() {
 		task := &Task{
 			Description: &TaskDescription{
-				Command: "echo $GREETING",
-				Env: map[string]string{
-					"GREETING": "hello",
+				Command: proto.String("echo $GREETING"),
+				Env: []*Variable{
+					NewVariable("GREETING", NewStringValue("hello")),
 				},
 			},
 		}
@@ -131,9 +133,9 @@ func TestShellExecutor(t *testing.T) {
 
 	n.It("passes the task id as an env var", func() {
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo $STRIVE_TASKID",
+				Command: proto.String("echo $STRIVE_TASKID"),
 			},
 		}
 
@@ -157,10 +159,10 @@ func TestShellExecutor(t *testing.T) {
 
 	n.It("pulls down urls into the work dir", func() {
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo $STRIVE_TASKID",
-				URLs:    []string{"http://test.this/foo"},
+				Command: proto.String("echo $STRIVE_TASKID"),
+				Urls:    []string{"http://test.this/foo"},
 			},
 		}
 
@@ -186,9 +188,9 @@ func TestShellExecutor(t *testing.T) {
 	n.It("writes the metadata into the work dir", func() {
 		task := &Task{
 			Description: &TaskDescription{
-				Command: "cat metadata.json",
-				MetaData: map[string]interface{}{
-					"stuff": "is cool",
+				Command: proto.String("cat metadata.json"),
+				Metadata: []*Variable{
+					NewVariable("stuff", NewStringValue("is cool")),
 				},
 			},
 		}
@@ -221,7 +223,7 @@ func TestShellExecutor(t *testing.T) {
 	n.It("writes valid json if metadata is empty", func() {
 		task := &Task{
 			Description: &TaskDescription{
-				Command: "cat metadata.json",
+				Command: proto.String("cat metadata.json"),
 			},
 		}
 
@@ -253,7 +255,7 @@ func TestShellExecutor(t *testing.T) {
 	n.It("setups up a separate stderr stream", func() {
 		task := &Task{
 			Description: &TaskDescription{
-				Command: "echo 'hello' > /dev/stderr",
+				Command: proto.String("echo 'hello' > /dev/stderr"),
 			},
 		}
 

@@ -6,7 +6,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/vektra/vega"
+	"code.google.com/p/goprotobuf/proto"
+
+	"github.com/vektra/tai64n"
 )
 
 var (
@@ -30,6 +32,8 @@ var (
 type state struct {
 	Hosts map[string]*Host
 	Tasks map[string]*Task
+
+	Available map[string]Resources
 }
 
 type Txn struct {
@@ -39,7 +43,7 @@ type Txn struct {
 	available map[string]map[string]int
 	state     *state
 
-	messages     chan *vega.Message
+	messages     chan *Message
 	shutdown     chan bool
 	done         chan error
 	entropyTimer time.Duration
@@ -58,16 +62,17 @@ func NewTxn(cfg *TxnConfig) *Txn {
 		entropyTimer: cfg.EntropyTimer,
 		available:    make(map[string]map[string]int),
 		state: &state{
-			Hosts: make(map[string]*Host),
-			Tasks: make(map[string]*Task),
+			Hosts:     make(map[string]*Host),
+			Tasks:     make(map[string]*Task),
+			Available: make(map[string]Resources),
 		},
-		messages: make(chan *vega.Message, cReceiveBacklog),
+		messages: make(chan *Message, cReceiveBacklog),
 		shutdown: make(chan bool),
 		done:     make(chan error),
 	}
 }
 
-func (t *Txn) HandleMessage(vm *vega.Message) error {
+func (t *Txn) HandleMessage(vm *Message) error {
 	txnMessages.Add(1)
 
 	msg, err := decodeMessage(vm)
@@ -92,14 +97,14 @@ func (t *Txn) HandleMessage(vm *vega.Message) error {
 func (t *Txn) updateTask(ts *TaskStatusChange) error {
 	txnTaskStatuses.Add(1)
 
-	task, ok := t.state.Tasks[ts.Id]
+	task, ok := t.state.Tasks[ts.GetTaskId()]
 	if !ok {
 		txnUnknownTask.Add(1)
 		return ErrUnknownTask
 	}
 
 	task.Status = ts.Status
-	task.LastUpdate = time.Now()
+	task.LastUpdate = tai64n.Now()
 
 	return nil
 }
@@ -109,14 +114,14 @@ var ErrUnknownHost = errors.New("unknown host sent status change")
 func (t *Txn) updateHost(hs *HostStatusChange) error {
 	txnHostStatuses.Add(1)
 
-	host, ok := t.state.Hosts[hs.Host]
+	host, ok := t.state.Hosts[hs.GetHostId()]
 	if !ok {
 		txnUnknownHost.Add(1)
 		return ErrUnknownHost
 	}
 
 	host.Status = hs.Status
-	host.LastHeartbeat = time.Now()
+	host.LastHeartbeat = tai64n.Now()
 
 	return nil
 }
@@ -128,27 +133,29 @@ func (t *Txn) updateState(us *UpdateState) error {
 	txnUpdates.Add(1)
 
 	for _, host := range us.AddHosts {
-		host.LastHeartbeat = time.Now()
-		host.Status = "online"
+		host.LastHeartbeat = tai64n.Now()
+		host.Status = HostStatus_ONLINE.Enum()
 
-		t.state.Hosts[host.ID] = host
-		t.available[host.ID] = host.Resources
+		t.state.Hosts[host.GetHostId()] = host
+		t.state.Available[host.GetHostId()] = NewResources(host.Resources)
 
 		txnHosts.Set(int64(len(t.state.Hosts)))
 	}
 
 	for _, task := range us.AddTasks {
-		for host, res := range task.Resources {
-			avail := t.available[host]
+		for _, hostres := range task.Resources {
+			host := hostres.GetHostId()
 
-			for rname, rval := range res {
-				aval, ok := avail[rname]
+			avail := t.state.Available[host]
+
+			for _, res := range hostres.GetResources() {
+				aval, ok := avail.Find(res.GetType())
 				if !ok {
 					txnUpdateErrors.Add(1)
 					return ErrNoResource
 				}
 
-				if aval < rval {
+				if aval.GetValue().GetIntVal() < res.GetValue().GetIntVal() {
 					txnUpdateErrors.Add(1)
 					return ErrNotEnoughResource
 				}
@@ -158,20 +165,30 @@ func (t *Txn) updateState(us *UpdateState) error {
 
 	// ok, we can commit the tasks
 	for _, task := range us.AddTasks {
-		for host, res := range task.Resources {
-			avail := t.available[host]
+		for _, hostres := range task.Resources {
+			avail := t.state.Available[hostres.GetHostId()]
 
-			for rname, rval := range res {
-				avail[rname] -= rval
+			for _, res := range hostres.Resources {
+				cur, ok := avail.Find(res.GetType())
+				if !ok {
+					panic("resource went missing between checking and taking")
+				}
+
+				up, err := cur.Remove(res)
+				if err != nil {
+					panic(err)
+				}
+
+				avail.Replace(cur, up)
 			}
 		}
 
 		txnTasksCreated.Add(1)
 
-		task.Status = "created"
-		task.LastUpdate = time.Now()
+		task.Status = TaskStatus_CREATED.Enum()
+		task.LastUpdate = tai64n.Now()
 
-		t.state.Tasks[task.Id] = task
+		t.state.Tasks[task.GetTaskId()] = task
 
 		txnTasks.Set(int64(len(t.state.Tasks)))
 	}
@@ -180,29 +197,27 @@ func (t *Txn) updateState(us *UpdateState) error {
 }
 
 func (t *Txn) checkHeartbeats(dur time.Duration) error {
-	threshold := time.Now().Add(-dur)
+	threshold := tai64n.Now().Add(-dur)
 
 	for _, host := range t.state.Hosts {
 		if host.LastHeartbeat.Before(threshold) {
 			txnFailedHeartbeats.Add(1)
 
-			host.Status = "offline"
+			host.Status = HostStatus_OFFLINE.Enum()
 
 			for _, task := range t.state.Tasks {
-				if task.Host == host.ID {
+				if task.GetHostId() == host.GetHostId() {
 					txnLostTasks.Add(1)
 
-					task.Status = "lost"
+					task.Status = TaskStatus_LOST.Enum()
 
-					if task.Scheduler != "" {
-						var vm vega.Message
-						vm.Type = "TaskStatusChange"
-						setBody(&vm, &TaskStatusChange{
-							Id:     task.Id,
-							Status: "lost",
-						})
+					if sch := task.SchedulerId; sch != nil {
+						vm := TaskStatusChange{
+							TaskId: task.TaskId,
+							Status: TaskStatus_LOST.Enum(),
+						}.Encode()
 
-						t.mb.SendMessage(task.Scheduler, &vm)
+						t.mb.SendMessage(*sch, vm)
 					}
 				}
 			}
@@ -216,18 +231,15 @@ func (t *Txn) PerformAntiEntropy() {
 	hostTasks := map[string][]string{}
 
 	for id, task := range t.state.Tasks {
-		hostTasks[task.Host] = append(hostTasks[task.Host], id)
+		hostTasks[task.GetHostId()] = append(hostTasks[task.GetHostId()], id)
 	}
 
 	for host, tasks := range hostTasks {
 		sort.Strings(tasks)
 
-		var vm vega.Message
+		vm := CheckTasks{TaskIds: tasks}.Encode()
 
-		vm.Type = "CheckTasks"
-		setBody(&vm, &CheckTasks{Tasks: tasks})
-
-		t.mb.SendMessage(host, &vm)
+		t.mb.SendMessage(host, vm)
 	}
 }
 
@@ -235,23 +247,24 @@ func (t *Txn) checkTasks(ctl *CheckedTaskList) error {
 	for _, id := range ctl.Missing {
 		task := t.state.Tasks[id]
 
-		if task.Status == "created" || task.Status == "running" {
-			var vm vega.Message
+		if task.Healthy() {
+			vm := StartTask{
+				OpId: proto.String(t.opId.NextOpId()),
+				Task: task,
+			}.Encode()
 
-			vm.Type = "StartTask"
-			setBody(&vm, &StartTask{OpId: t.opId.NextOpId(), Task: task})
-
-			t.mb.SendMessage(task.Host, &vm)
+			t.mb.SendMessage(task.GetHostId(), vm)
 		}
 	}
 
 	for _, id := range ctl.Unknown {
-		var vm vega.Message
+		vm := StopTask{
+			OpId:   proto.String(t.opId.NextOpId()),
+			TaskId: proto.String(id),
+			Force:  proto.Bool(true),
+		}.Encode()
 
-		vm.Type = "StopTask"
-		setBody(&vm, &StopTask{OpId: t.opId.NextOpId(), Id: id, Force: true})
-
-		t.mb.SendMessage(ctl.Host, &vm)
+		t.mb.SendMessage(ctl.GetHostId(), vm)
 	}
 
 	return nil
@@ -273,7 +286,7 @@ func (t *Txn) Process() {
 	}
 }
 
-func (t *Txn) InjectMessage(vm *vega.Message) {
+func (t *Txn) InjectMessage(vm *Message) {
 	t.messages <- vm
 }
 

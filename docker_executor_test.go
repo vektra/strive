@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.google.com/p/gogoprotobuf/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	backend "github.com/vektra/go-dockerclient"
@@ -23,11 +25,11 @@ func TestDockerExecutor(t *testing.T) {
 	n.CheckMock(&mws.Mock)
 
 	task := &Task{
-		Id: "task1",
+		TaskId: proto.String("task1"),
 		Description: &TaskDescription{
-			Command: "echo 'hello'",
-			Container: &ContainerDetails{
-				Image: "ubuntu",
+			Command: proto.String("echo 'hello'"),
+			Container: &ContainerInfo{
+				Image: proto.String("ubuntu"),
 			},
 		},
 	}
@@ -60,7 +62,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -119,7 +121,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -197,7 +199,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -241,14 +243,14 @@ func TestDockerExecutor(t *testing.T) {
 
 	n.It("writes metadata to the work dir", func() {
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo 'hello'",
-				Container: &ContainerDetails{
-					Image: "ubuntu",
+				Command: proto.String("echo 'hello'"),
+				Container: &ContainerInfo{
+					Image: proto.String("ubuntu"),
 				},
-				MetaData: map[string]interface{}{
-					"stuff": "is cool",
+				Metadata: []*Variable{
+					NewVariable("stuff", NewStringValue("is cool")),
 				},
 			},
 		}
@@ -281,7 +283,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -331,11 +333,11 @@ func TestDockerExecutor(t *testing.T) {
 
 	n.It("writes valid json even if metadata is empty", func() {
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo 'hello'",
-				Container: &ContainerDetails{
-					Image: "ubuntu",
+				Command: proto.String("echo 'hello'"),
+				Container: &ContainerInfo{
+					Image: proto.String("ubuntu"),
 				},
 			},
 		}
@@ -368,7 +370,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -418,16 +420,16 @@ func TestDockerExecutor(t *testing.T) {
 
 	n.It("uses a requested port", func() {
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo 'hello'",
-				Container: &ContainerDetails{
-					Image: "ubuntu",
-					Ports: []PortBinding{
+				Command: proto.String("echo 'hello'"),
+				Container: &ContainerInfo{
+					Image: proto.String("ubuntu"),
+					Ports: []*PortBinding{
 						{
-							HostPort:      32001,
-							ContainerPort: 32001,
-							Protocol:      "tcp",
+							Host:      proto.Int64(32001),
+							Container: proto.Int64(32001),
+							Protocol:  PortBinding_TCP.Enum(),
 						},
 					},
 				},
@@ -444,7 +446,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id, "PORT=32001"},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId(), "PORT=32001"},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -506,7 +508,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -545,7 +547,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -595,13 +597,13 @@ func TestDockerExecutor(t *testing.T) {
 
 	n.It("can stop container nicely and not nicely", func() {
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
-				Command: "echo 'hello'",
-				Container: &ContainerDetails{
-					Image: "ubuntu",
+				Command: proto.String("echo 'hello'"),
+				Container: &ContainerInfo{
+					Image: proto.String("ubuntu"),
 				},
-				URLs: []string{"http://test.this/foo"},
+				Urls: []string{"http://test.this/foo"},
 			},
 		}
 
@@ -616,7 +618,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"/bin/bash", "-c", "echo 'hello'"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,
@@ -672,11 +674,11 @@ func TestDockerExecutor(t *testing.T) {
 
 	n.It("passes exec if specified", func() {
 		task := &Task{
-			Id: "task1",
+			TaskId: proto.String("task1"),
 			Description: &TaskDescription{
 				Exec: []string{"hello", "world"},
-				Container: &ContainerDetails{
-					Image: "ubuntu",
+				Container: &ContainerInfo{
+					Image: proto.String("ubuntu"),
 				},
 			},
 		}
@@ -691,7 +693,7 @@ func TestDockerExecutor(t *testing.T) {
 				Image:        "ubuntu",
 				Hostname:     "strive-task1",
 				Cmd:          []string{"hello", "world"},
-				Env:          []string{"STRIVE_TASKID=" + task.Id},
+				Env:          []string{"STRIVE_TASKID=" + task.GetTaskId()},
 				WorkingDir:   "/tmp/strive-sandbox",
 				AttachStdout: true,
 				AttachStderr: true,

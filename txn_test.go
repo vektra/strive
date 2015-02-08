@@ -4,10 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"code.google.com/p/goprotobuf/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vektra/neko"
-	"github.com/vektra/vega"
+	"github.com/vektra/tai64n"
 )
 
 func TestTxn(t *testing.T) {
@@ -16,65 +18,89 @@ func TestTxn(t *testing.T) {
 	var (
 		mb   MockMessageBus
 		opid MockOpIdGenerator
-		vm   *vega.Message
+		vm   *Message
 		txn  *Txn
 	)
 
 	n.CheckMock(&mb.Mock)
 	n.CheckMock(&opid.Mock)
 
+	var host *Host
+	var task *Task
+
 	n.Setup(func() {
-		vm = &vega.Message{}
+		vm = &Message{}
 		txn = NewTxn(&TxnConfig{&mb, &opid, 2 * time.Minute})
-	})
-
-	set := func(us *UpdateState) {
-		vm.Type = "UpdateState"
-		setBody(vm, us)
-	}
-
-	n.It("adds new hosts to the state", func() {
-		host := &Host{
-			ID: "t1",
-			Resources: map[string]int{
-				"cpu": 4,
-				"mem": 1024,
+		host = &Host{
+			HostId: proto.String("t1"),
+			Resources: []*Resource{
+				{
+					Type:  Resource_CPU.Enum(),
+					Value: NewIntValue(4),
+				},
+				{
+					Type:  Resource_MEMORY.Enum(),
+					Value: NewIntValue(1024),
+				},
 			},
 		}
 
-		set(&UpdateState{
-			AddHosts: []*Host{host},
-		})
+		task = &Task{
+			TaskId: proto.String("task1"),
+			Resources: []*HostResource{
+				{
+					HostId: proto.String("t1"),
+					Resources: []*Resource{
+						{
+							Type:  Resource_CPU.Enum(),
+							Value: NewIntValue(1),
+						},
+						{
+							Type:  Resource_MEMORY.Enum(),
+							Value: NewIntValue(512),
+						},
+					},
+				},
+			},
+			Status:     TaskStatus_CREATED.Enum(),
+			LastUpdate: tai64n.Now(),
+		}
 
-		err := txn.HandleMessage(vm)
+	})
+
+	n.It("adds new hosts to the state", func() {
+		us := UpdateState{
+			AddHosts: []*Host{host},
+		}.Encode()
+
+		err := txn.HandleMessage(us)
 		require.NoError(t, err)
 
 		h2 := txn.state.Hosts["t1"]
 
-		assert.Equal(t, host.ID, h2.ID)
-		assert.Equal(t, h2.Status, "online")
+		assert.Equal(t, host.HostId, h2.HostId)
+		assert.Equal(t, h2.Status, HostStatus_ONLINE.Enum())
 
-		assert.Equal(t, txn.available["t1"]["cpu"], 4)
-		assert.Equal(t, txn.available["t1"]["mem"], 1024)
+		cpu, ok := txn.state.Available["t1"].Find(Resource_CPU)
+		require.True(t, ok)
+
+		assert.Equal(t, cpu.GetValue().GetIntVal(), 4)
+
+		mem, ok := txn.state.Available["t1"].Find(Resource_MEMORY)
+		require.True(t, ok)
+
+		assert.Equal(t, mem.GetValue().GetIntVal(), 1024)
 	})
 
 	n.It("updates the LastHeartbeat of new hosts", func() {
-		now := time.Now()
+		now := tai64n.Now()
+		host.LastHeartbeat = now
 
-		host := &Host{
-			ID: "t1",
-			Resources: map[string]int{
-				"cpu": 4,
-				"mem": 1024,
-			},
-			LastHeartbeat: now,
-		}
-
-		set(&UpdateState{
+		us := UpdateState{
 			AddHosts: []*Host{host},
-		})
+		}.Encode()
 
-		err := txn.HandleMessage(vm)
+		err := txn.HandleMessage(us)
 		require.NoError(t, err)
 
 		h2 := txn.state.Hosts["t1"]
@@ -83,160 +109,143 @@ func TestTxn(t *testing.T) {
 	})
 
 	n.It("accepts new tasks", func() {
-		task := &Task{
-			Id: "task1",
-			Resources: map[string]TaskResources{
-				"t1": TaskResources{
-					"cpu": 1,
-					"mem": 512,
-				},
-			},
-			Status:     "created",
-			LastUpdate: time.Now(),
-		}
-
-		set(&UpdateState{
+		us := UpdateState{
 			AddTasks: []*Task{task},
+		}.Encode()
+
+		txn.state.Available["t1"] = NewResources([]*Resource{
+			&Resource{
+				Type:  Resource_CPU.Enum(),
+				Value: NewIntValue(4),
+			},
+			&Resource{
+				Type:  Resource_MEMORY.Enum(),
+				Value: NewIntValue(1024),
+			},
 		})
 
-		txn.available["t1"] = map[string]int{
-			"cpu": 4,
-			"mem": 1024,
-		}
-
-		err := txn.HandleMessage(vm)
+		err := txn.HandleMessage(us)
 		require.NoError(t, err)
 
 		task.LastUpdate = txn.state.Tasks["task1"].LastUpdate
 		assert.Equal(t, txn.state.Tasks["task1"], task)
 
-		assert.Equal(t, txn.available["t1"]["cpu"], 3)
-		assert.Equal(t, txn.available["t1"]["mem"], 512)
+		cpu, ok := txn.state.Available["t1"].Find(Resource_CPU)
+		require.True(t, ok)
+
+		mem, ok := txn.state.Available["t1"].Find(Resource_MEMORY)
+		require.True(t, ok)
+
+		assert.Equal(t, cpu.GetValue().GetIntVal(), 3)
+		assert.Equal(t, mem.GetValue().GetIntVal(), 512)
 	})
 
 	n.It("sets the status of a new task to created", func() {
-		task := &Task{
-			Id: "task1",
-			Resources: map[string]TaskResources{
-				"t1": TaskResources{
-					"cpu": 1,
-					"mem": 512,
-				},
-			},
-			Status: "running",
-		}
+		task.Status = TaskStatus_RUNNING.Enum()
 
-		set(&UpdateState{
+		us := UpdateState{
 			AddTasks: []*Task{task},
+		}.Encode()
+
+		txn.state.Available["t1"] = NewResources([]*Resource{
+			&Resource{
+				Type:  Resource_CPU.Enum(),
+				Value: NewIntValue(4),
+			},
+			&Resource{
+				Type:  Resource_MEMORY.Enum(),
+				Value: NewIntValue(1024),
+			},
 		})
 
-		txn.available["t1"] = map[string]int{
-			"cpu": 4,
-			"mem": 1024,
-		}
-
-		err := txn.HandleMessage(vm)
+		err := txn.HandleMessage(us)
 		require.NoError(t, err)
 
-		assert.Equal(t, txn.state.Tasks["task1"].Status, "created")
-
-		assert.Equal(t, txn.available["t1"]["cpu"], 3)
-		assert.Equal(t, txn.available["t1"]["mem"], 512)
+		assert.Equal(t, txn.state.Tasks["task1"].Status, TaskStatus_CREATED.Enum())
 	})
 
 	n.It("updates the LastUpdate of a new task to now", func() {
-		now := time.Now()
+		now := tai64n.Now()
 
-		task := &Task{
-			Id: "task1",
-			Resources: map[string]TaskResources{
-				"t1": TaskResources{
-					"cpu": 1,
-					"mem": 512,
-				},
-			},
-			Status:     "running",
-			LastUpdate: now,
-		}
+		task.Status = TaskStatus_RUNNING.Enum()
 
-		set(&UpdateState{
+		us := UpdateState{
 			AddTasks: []*Task{task},
+		}.Encode()
+
+		txn.state.Available["t1"] = NewResources([]*Resource{
+			&Resource{
+				Type:  Resource_CPU.Enum(),
+				Value: NewIntValue(4),
+			},
+			&Resource{
+				Type:  Resource_MEMORY.Enum(),
+				Value: NewIntValue(1024),
+			},
 		})
 
-		txn.available["t1"] = map[string]int{
-			"cpu": 4,
-			"mem": 1024,
-		}
-
-		err := txn.HandleMessage(vm)
+		err := txn.HandleMessage(us)
 		require.NoError(t, err)
 
 		assert.True(t, txn.state.Tasks["task1"].LastUpdate.After(now))
 	})
 
 	n.It("rejects new tasks when a resource is missing", func() {
-		task := &Task{
-			Id: "task1",
-			Resources: map[string]TaskResources{
-				"t1": TaskResources{
-					"cpu": 1,
-					"mem": 512,
-				},
-			},
-		}
-
-		set(&UpdateState{
+		us := UpdateState{
 			AddTasks: []*Task{task},
-		})
+		}.Encode()
 
-		err := txn.HandleMessage(vm)
+		err := txn.HandleMessage(us)
 		assert.Equal(t, err, ErrNoResource)
 
 		assert.Nil(t, txn.state.Tasks["task1"])
 	})
 
 	n.It("rejects new tasks when there is not enough of a resource", func() {
-		task := &Task{
-			Id: "task1",
-			Resources: map[string]TaskResources{
-				"t1": TaskResources{
-					"cpu": 1,
-					"mem": 2048,
-				},
-			},
-		}
-
-		set(&UpdateState{
+		us := UpdateState{
 			AddTasks: []*Task{task},
+		}.Encode()
+
+		txn.state.Available["t1"] = NewResources([]*Resource{
+			&Resource{
+				Type:  Resource_CPU.Enum(),
+				Value: NewIntValue(4),
+			},
+			&Resource{
+				Type:  Resource_MEMORY.Enum(),
+				Value: NewIntValue(128),
+			},
 		})
 
-		txn.available["t1"] = map[string]int{
-			"cpu": 4,
-			"mem": 1024,
-		}
-
-		err := txn.HandleMessage(vm)
+		err := txn.HandleMessage(us)
 		assert.Equal(t, err, ErrNotEnoughResource)
 
 		assert.Nil(t, txn.state.Tasks["task1"])
 
-		assert.Equal(t, txn.available["t1"]["cpu"], 4)
-		assert.Equal(t, txn.available["t1"]["mem"], 1024)
+		cpu, ok := txn.state.Available["t1"].Find(Resource_CPU)
+		require.True(t, ok)
+
+		mem, ok := txn.state.Available["t1"].Find(Resource_MEMORY)
+		require.True(t, ok)
+
+		assert.Equal(t, cpu.GetValue().GetIntVal(), 4)
+		assert.Equal(t, mem.GetValue().GetIntVal(), 128)
 	})
 
 	n.It("updates a hosts heartbeat field when it recieves a status change", func() {
 		txn.state.Hosts["h1"] = &Host{
-			Status:        "online",
-			LastHeartbeat: time.Now().Add(-61 * time.Second),
+			Status:        HostStatus_ONLINE.Enum(),
+			LastHeartbeat: tai64n.Now().Add(-61 * time.Second),
 		}
 
-		now := time.Now()
+		now := tai64n.Now()
 
-		var vm vega.Message
-		vm.Type = "HostStatusChange"
-		setBody(&vm, &HostStatusChange{Host: "h1", Status: "online"})
+		vm := HostStatusChange{
+			HostId: proto.String("h1"),
+			Status: HostStatus_ONLINE.Enum(),
+		}.Encode()
 
-		err := txn.HandleMessage(&vm)
+		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
 
 		assert.True(t, txn.state.Hosts["h1"].LastHeartbeat.After(now))
@@ -244,90 +253,97 @@ func TestTxn(t *testing.T) {
 
 	n.It("updates a host status to reflect status in message", func() {
 		txn.state.Hosts["h1"] = &Host{
-			Status:        "online",
-			LastHeartbeat: time.Now().Add(-61 * time.Second),
+			Status:        HostStatus_ONLINE.Enum(),
+			LastHeartbeat: tai64n.Now().Add(-61 * time.Second),
 		}
 
-		now := time.Now()
+		now := tai64n.Now()
 
-		var vm vega.Message
-		vm.Type = "HostStatusChange"
-		setBody(&vm, &HostStatusChange{Host: "h1", Status: "offline"})
+		vm := HostStatusChange{
+			HostId: proto.String("h1"),
+			Status: HostStatus_OFFLINE.Enum(),
+		}.Encode()
 
-		err := txn.HandleMessage(&vm)
+		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
 
 		assert.True(t, txn.state.Hosts["h1"].LastHeartbeat.After(now))
-		assert.Equal(t, txn.state.Hosts["h1"].Status, "offline")
+		assert.Equal(t, txn.state.Hosts["h1"].Status, HostStatus_OFFLINE.Enum())
 	})
 
 	n.It("sets hosts to offline if they've missed heartbeats", func() {
 		txn.state.Hosts["h1"] = &Host{
-			Status:        "online",
-			LastHeartbeat: time.Now().Add(-61 * time.Second),
+			Status:        HostStatus_ONLINE.Enum(),
+			LastHeartbeat: tai64n.Now().Add(-61 * time.Second),
 		}
 
 		err := txn.checkHeartbeats(60 * time.Second)
 		require.NoError(t, err)
 
-		assert.Equal(t, txn.state.Hosts["h1"].Status, "offline")
+		assert.Equal(t, txn.state.Hosts["h1"].Status, HostStatus_OFFLINE.Enum())
 	})
 
 	n.It("sets the statuses of all the hosts tasks to lost", func() {
 		txn.state.Hosts["h1"] = &Host{
-			ID:            "h1",
-			Status:        "online",
-			LastHeartbeat: time.Now().Add(-61 * time.Second),
+			HostId:        proto.String("h1"),
+			Status:        HostStatus_ONLINE.Enum(),
+			LastHeartbeat: tai64n.Now().Add(-61 * time.Second),
 		}
 
 		txn.state.Tasks["t1"] = &Task{
-			Id:        "t1",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "running",
+			TaskId:      proto.String("t1"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_RUNNING.Enum(),
 		}
 
-		vm.Type = "TaskStatusChange"
-		setBody(vm, &TaskStatusChange{Id: "t1", Status: "lost"})
+		vm := TaskStatusChange{
+			TaskId: proto.String("t1"),
+			Status: TaskStatus_LOST.Enum(),
+		}.Encode()
 
 		mb.On("SendMessage", "s1", vm).Return(nil)
 
 		err := txn.checkHeartbeats(60 * time.Second)
 		require.NoError(t, err)
 
-		assert.Equal(t, txn.state.Tasks["t1"].Status, "lost")
+		assert.Equal(t, txn.state.Tasks["t1"].Status, TaskStatus_LOST.Enum())
 	})
 
 	n.It("updates a task's status via TaskStatusChange messages", func() {
 		txn.state.Tasks["t1"] = &Task{
-			Id:        "t1",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "created",
+			TaskId:      proto.String("t1"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_CREATED.Enum(),
 		}
 
-		vm.Type = "TaskStatusChange"
-		setBody(vm, &TaskStatusChange{Id: "t1", Status: "running"})
+		vm := TaskStatusChange{
+			TaskId: proto.String("t1"),
+			Status: TaskStatus_RUNNING.Enum(),
+		}.Encode()
 
 		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
 
-		assert.Equal(t, txn.state.Tasks["t1"].Status, "running")
+		assert.Equal(t, txn.state.Tasks["t1"].Status, TaskStatus_RUNNING.Enum())
 	})
 
 	n.It("updates a task's LastUpdated via TaskStatusChange messages", func() {
-		now := time.Now()
+		now := tai64n.Now()
 
 		txn.state.Tasks["t1"] = &Task{
-			Id:         "t1",
-			Scheduler:  "s1",
-			Host:       "h1",
-			Status:     "created",
-			LastUpdate: now,
+			TaskId:      proto.String("t1"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_CREATED.Enum(),
+			LastUpdate:  now,
 		}
 
-		vm.Type = "TaskStatusChange"
-		setBody(vm, &TaskStatusChange{Id: "t1", Status: "running"})
+		vm := TaskStatusChange{
+			TaskId: proto.String("t1"),
+			Status: TaskStatus_RUNNING.Enum(),
+		}.Encode()
 
 		err := txn.HandleMessage(vm)
 		require.NoError(t, err)
@@ -337,31 +353,25 @@ func TestTxn(t *testing.T) {
 
 	n.It("detects and starts missing tasks on agents", func() {
 		task := &Task{
-			Id:        "t1",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "created",
+			TaskId:      proto.String("t1"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_CREATED.Enum(),
 		}
 
 		txn.state.Tasks["t1"] = task
 
-		vm.Type = "CheckTasks"
-		setBody(vm, &CheckTasks{Tasks: []string{"t1"}})
+		vm := CheckTasks{TaskIds: []string{"t1"}}.Encode()
 
 		mb.On("SendMessage", "h1", vm).Return(nil)
 
 		txn.PerformAntiEntropy()
 
-		run := &vega.Message{}
-
-		run.Type = "CheckedTaskList"
-		setBody(run, &CheckedTaskList{Missing: []string{"t1"}})
+		run := CheckedTaskList{Missing: []string{"t1"}}.Encode()
 
 		opid.On("NextOpId").Return("foo1")
 
-		start := &vega.Message{}
-		start.Type = "StartTask"
-		setBody(start, &StartTask{OpId: "foo1", Task: task})
+		start := StartTask{OpId: proto.String("foo1"), Task: task}.Encode()
 
 		mb.On("SendMessage", "h1", start).Return(nil)
 
@@ -371,25 +381,24 @@ func TestTxn(t *testing.T) {
 
 	n.It("aggregates task ids when sending CheckTasks", func() {
 		task := &Task{
-			Id:        "t1",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "created",
+			TaskId:      proto.String("t1"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_CREATED.Enum(),
 		}
 
 		txn.state.Tasks["t1"] = task
 
 		task2 := &Task{
-			Id:        "t2",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "created",
+			TaskId:      proto.String("t2"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_CREATED.Enum(),
 		}
 
 		txn.state.Tasks["t2"] = task2
 
-		vm.Type = "CheckTasks"
-		setBody(vm, &CheckTasks{Tasks: []string{"t1", "t2"}})
+		vm := CheckTasks{TaskIds: []string{"t1", "t2"}}.Encode()
 
 		mb.On("SendMessage", "h1", vm).Return(nil)
 
@@ -398,24 +407,26 @@ func TestTxn(t *testing.T) {
 
 	n.It("stops unknown tasks", func() {
 		task := &Task{
-			Id:        "t1",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "created",
+			TaskId:      proto.String("t1"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_CREATED.Enum(),
 		}
 
 		txn.state.Tasks["t1"] = task
 
-		run := &vega.Message{}
-
-		run.Type = "CheckedTaskList"
-		setBody(run, &CheckedTaskList{Host: "h1", Unknown: []string{"t2"}})
+		run := CheckedTaskList{
+			HostId:  proto.String("h1"),
+			Unknown: []string{"t2"},
+		}.Encode()
 
 		opid.On("NextOpId").Return("foo1")
 
-		start := &vega.Message{}
-		start.Type = "StopTask"
-		setBody(start, &StopTask{OpId: "foo1", Id: "t2", Force: true})
+		start := StopTask{
+			OpId:   proto.String("foo1"),
+			TaskId: proto.String("t2"),
+			Force:  proto.Bool(true),
+		}.Encode()
 
 		mb.On("SendMessage", "h1", start).Return(nil)
 
@@ -425,59 +436,61 @@ func TestTxn(t *testing.T) {
 
 	n.It("only starts created or running tasks", func() {
 		task1 := &Task{
-			Id:        "t1",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "created",
+			TaskId:      proto.String("t1"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_CREATED.Enum(),
 		}
 
 		txn.state.Tasks["t1"] = task1
 
 		task2 := &Task{
-			Id:        "t2",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "running",
+			TaskId:      proto.String("t2"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_RUNNING.Enum(),
 		}
 
 		txn.state.Tasks["t2"] = task2
 
 		task3 := &Task{
-			Id:        "t3",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "finished",
+			TaskId:      proto.String("t3"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_FINISHED.Enum(),
 		}
 
 		txn.state.Tasks["t3"] = task3
 
 		task4 := &Task{
-			Id:        "t4",
-			Scheduler: "s1",
-			Host:      "h1",
-			Status:    "failed",
+			TaskId:      proto.String("t4"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_FAILED.Enum(),
 		}
 
 		txn.state.Tasks["t4"] = task4
 
-		run := &vega.Message{}
+		task5 := &Task{
+			TaskId:      proto.String("t5"),
+			SchedulerId: proto.String("s1"),
+			HostId:      proto.String("h1"),
+			Status:      TaskStatus_LOST.Enum(),
+		}
 
-		run.Type = "CheckedTaskList"
-		setBody(run, &CheckedTaskList{Missing: []string{"t1", "t2", "t3", "t4"}})
+		txn.state.Tasks["t5"] = task5
+
+		run := CheckedTaskList{Missing: []string{"t1", "t2", "t3", "t4", "t5"}}.Encode()
 
 		opid.On("NextOpId").Return("foo1")
 
-		start := &vega.Message{}
-		start.Type = "StartTask"
-		setBody(start, &StartTask{OpId: "foo1", Task: task1})
+		start := StartTask{OpId: proto.String("foo1"), Task: task1}.Encode()
 
 		mb.On("SendMessage", "h1", start).Return(nil)
 
 		opid.On("NextOpId").Return("foo1")
 
-		start2 := &vega.Message{}
-		start2.Type = "StartTask"
-		setBody(start2, &StartTask{OpId: "foo1", Task: task2})
+		start2 := StartTask{OpId: proto.String("foo1"), Task: task2}.Encode()
 
 		mb.On("SendMessage", "h1", start2).Return(nil)
 

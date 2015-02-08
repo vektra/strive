@@ -1,61 +1,38 @@
 package strive
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
-type TaskResources map[string]int
+func (pb *PortBinding) DockerContainerPort() string {
+	var proto string
 
-type PortBinding struct {
-	HostPort      int
-	ContainerPort int
-	Protocol      string
+	switch pb.GetProtocol() {
+	case PortBinding_TCP:
+		proto = "tcp"
+	case PortBinding_UDP:
+		proto = "udp"
+	default:
+		panic("unknown port binding protocol")
+	}
+
+	return fmt.Sprintf("%d/%s", *pb.Container, proto)
 }
 
-func (pb PortBinding) DockerContainerPort() string {
-	return fmt.Sprintf("%d/%s", pb.ContainerPort, pb.Protocol)
+func (pb *PortBinding) DockerHostPort() string {
+	return fmt.Sprintf("%d", *pb.Host)
 }
 
-func (pb PortBinding) DockerHostPort() string {
-	return fmt.Sprintf("%d", pb.HostPort)
-}
-
-type ContainerDetails struct {
-	Image string
-	Ports []PortBinding
-}
-
-type TaskDescription struct {
-	Command  string
-	Exec     []string
-	Env      map[string]string
-	URLs     []string
-	Config   map[string]interface{}
-	MetaData map[string]interface{}
-	Labels   []string
-
-	Container *ContainerDetails
-}
-
-type Task struct {
-	Id          string
-	Host        string
-	Scheduler   string
-	Resources   map[string]TaskResources
-	Description *TaskDescription
-
-	Status     string
-	LastUpdate time.Time
-}
-
-func (t *Task) ConfigGet(key string) (interface{}, bool) {
+func (t *Task) ConfigGet(key string) (*Value, bool) {
 	if t.Description == nil || t.Description.Config == nil {
 		return nil, false
 	}
 
-	val, ok := t.Description.Config[key]
-	return val, ok
+	for _, val := range t.Description.Config {
+		if val.GetName() == key {
+			return val.Value, true
+		}
+	}
+
+	return nil, false
 }
 
 func (t *Task) ConfigBoolGet(key string) (bool, bool) {
@@ -64,9 +41,18 @@ func (t *Task) ConfigBoolGet(key string) (bool, bool) {
 		return false, false
 	}
 
-	if bval, ok := val.(bool); ok {
-		return bval, true
+	if val.GetValueType() == Value_BOOL {
+		return val.GetBoolVal(), true
 	}
 
 	return false, false
+}
+
+func (t *Task) Healthy() bool {
+	switch t.GetStatus() {
+	case TaskStatus_CREATED, TaskStatus_RUNNING:
+		return true
+	}
+
+	return false
 }

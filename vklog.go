@@ -84,7 +84,7 @@ func (s *vkStream) Close() error {
 }
 
 func (v *VKLogger) SetupStream(name string, task *Task) (io.WriteCloser, error) {
-	return &vkStream{logger: v.logger, name: name, taskId: task.Id}, nil
+	return &vkStream{logger: v.logger, name: name, taskId: task.GetTaskId()}, nil
 }
 
 type structuredStream struct {

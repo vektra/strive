@@ -5,7 +5,6 @@ import (
 	"os/exec"
 
 	backend "github.com/vektra/go-dockerclient"
-	"github.com/vektra/vega"
 )
 
 type OpIdGenerator interface {
@@ -22,11 +21,11 @@ type TaskExecutor interface {
 }
 
 type MessageBus interface {
-	SendMessage(who string, vm *vega.Message) error
+	SendMessage(who string, vm *Message) error
 }
 
 type MessageHandler interface {
-	HandleMessage(vm *vega.Message) error
+	HandleMessage(vm *Message) error
 }
 
 type MessageBusReceiver interface {

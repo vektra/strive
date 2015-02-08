@@ -1,0 +1,207 @@
+package strive;
+
+import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
+import "github.com/vektra/tai64n/tai64n.proto";
+
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.verbose_equal_all) = true;
+
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) =  true;
+
+
+message Range {
+  required int64 start = 1;
+  required int64 end = 2;
+}
+
+message Value {
+  enum ValueType {
+    INT = 0;
+    STRING = 1;
+    BYTES = 2;
+    BOOL = 3;
+    RANGE = 4;
+    LIST = 5;
+    MAP = 6;
+  }
+
+  required ValueType value_type = 1;
+
+  optional int64 int_val = 2;
+  optional string str_val = 3;
+  optional bytes bytes_val = 4;
+  optional bool bool_val = 5;
+  optional Range range_val = 6;
+  repeated Value list_val = 7;
+  repeated Variable map_val = 8;
+}
+
+message Variable {
+  required string name = 1;
+  required Value value = 2;
+}
+
+message Resource {
+  enum ResourceType {
+    CPU = 0;
+    MEMORY = 1;
+    PORT = 2;
+    VOLUME = 3;
+    CUSTOM = 4;
+  }
+
+  required ResourceType type = 1;
+  optional string custom_type = 2;
+
+  required Value value = 3;
+}
+
+enum HostStatus {
+  UNKNOWN = 0;
+  ONLINE = 1;
+  DISABLED = 2;
+  OFFLINE = 3;
+}
+
+message Host {
+  required string host_id = 1;
+  optional string name = 2;
+  repeated Resource resources = 3;
+  required HostStatus status = 4 [default = UNKNOWN];
+
+  required tai64n.TAI64n last_heartbeat = 5;
+}
+
+message PortBinding {
+  enum Protocol {
+    TCP = 0;
+    UDP = 1;
+  }
+
+  required int64 host = 1;
+  required int64 container = 2;
+  required Protocol protocol = 3 [default = TCP];
+}
+
+message ContainerInfo {
+  enum ContainerMode {
+    DOCKER = 0;
+  }
+
+  required ContainerMode mode = 1;
+  required string image = 2;
+  repeated PortBinding ports = 3;
+}
+
+message TaskDescription {
+  optional string command = 1;
+  repeated string exec = 2;
+  repeated Variable env = 3;
+  repeated string urls = 4;
+  repeated Variable config = 5;
+  repeated Variable metadata = 6;
+  repeated string labels = 7;
+
+  optional ContainerInfo container = 8;
+}
+
+enum TaskStatus {
+  CREATED = 0;
+  RUNNING = 1;
+  FINISHED = 2;
+  FAILED = 3;
+  ERROR = 4;
+  LOST = 5;
+}
+
+message HostResource {
+  required string host_id = 1;
+  repeated Resource resources = 2;
+}
+
+message Task {
+  required string task_id = 1;
+  optional string host_id = 2;
+  optional string scheduler_id = 3;
+
+  required TaskDescription description = 4;
+  repeated HostResource resources = 5;
+
+  required TaskStatus status = 6 [default = CREATED];
+  required tai64n.TAI64n last_update = 7;
+}
+
+message UpdateState {
+  repeated Host add_hosts = 1;
+  repeated Task add_tasks = 2;
+}
+
+message StartTask {
+  required string opId = 1;
+  required Task task = 2;
+}
+
+message StopTask {
+  required string op_id = 1;
+  required string task_id = 2;
+  optional bool force = 3;
+}
+
+message OpAcknowledged {
+  required string op_id = 1;
+}
+
+message TaskStatusChange {
+  required string task_id = 1;
+  required TaskStatus status = 2;
+  optional string error = 3;
+}
+
+message HostStatusChange {
+  required string host_id = 1;
+  required HostStatus status = 2;
+}
+
+message ListTasks {
+  required string op_id = 1;
+}
+
+message CurrentTasks {
+  required string op_id = 1;
+  repeated string task_ids = 2;
+}
+
+message Error {
+  enum ErrorCode {
+    UNKNOWN = 0;
+    UNKNOWN_TASK = 1;
+    UNKNOWN_MESSAGE = 2;
+  }
+
+  required ErrorCode error_id = 1 [(gogoproto.nullable) = false];
+  optional string description = 2;
+}
+
+message GenericError {
+  required Error error = 1;
+}
+
+message StopError {
+  required string op_id = 1;
+  required string task_id = 2;
+  required Error error = 3;
+}
+
+message CheckTasks {
+  repeated string task_ids = 1;
+}
+
+message CheckedTaskList {
+  required string host_id = 1;
+  repeated string missing = 2;
+  repeated string unknown = 3;
+}

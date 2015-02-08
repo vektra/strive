@@ -116,7 +116,7 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
-	for _, url := range task.Description.URLs {
+	for _, url := range task.Description.Urls {
 		err = de.WorkSetup.DownloadURL(url, tmpDir)
 		if err != nil {
 			return nil, err
@@ -128,10 +128,10 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
-	if task.Description.MetaData == nil {
+	if task.Description.Metadata == nil {
 		f.Write([]byte("{}\n"))
 	} else {
-		err = json.NewEncoder(f).Encode(task.Description.MetaData)
+		err = json.NewEncoder(f).Encode(JSONVariables(task.Description.Metadata))
 	}
 
 	f.Close()
@@ -140,7 +140,7 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		return nil, err
 	}
 
-	imgName := task.Description.Container.Image
+	imgName := task.Description.Container.GetImage()
 
 	_, err = de.Client.InspectImage(imgName)
 	if err != nil {
@@ -171,7 +171,7 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 		}
 	}
 
-	env := []string{"STRIVE_TASKID=" + task.Id}
+	env := []string{"STRIVE_TASKID=" + task.GetTaskId()}
 
 	hostCfg := &backend.HostConfig{
 		Binds: []string{tmpDir + ":/tmp/strive-sandbox"},
@@ -189,17 +189,17 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 				backend.PortBinding{HostPort: port.DockerHostPort()},
 			)
 
-			env = append(env, fmt.Sprintf("PORT=%d", port.ContainerPort))
+			env = append(env, fmt.Sprintf("PORT=%d", port.GetContainer()))
 		}
 
 		hostCfg.PortBindings = pb
 	}
 
 	cco := backend.CreateContainerOptions{
-		Name: "strive-" + task.Id,
+		Name: "strive-" + task.GetTaskId(),
 		Config: &backend.Config{
 			Image:        imgName,
-			Hostname:     "strive-" + task.Id,
+			Hostname:     "strive-" + task.GetTaskId(),
 			Env:          env,
 			WorkingDir:   "/tmp/strive-sandbox",
 			AttachStdout: true,
@@ -209,8 +209,8 @@ func (de *DockerExecutor) Run(task *Task) (TaskHandle, error) {
 
 	if len(task.Description.Exec) > 0 {
 		cco.Config.Cmd = task.Description.Exec
-	} else if task.Description.Command != "" {
-		cco.Config.Cmd = []string{"/bin/bash", "-c", task.Description.Command}
+	} else if task.Description.Command != nil {
+		cco.Config.Cmd = []string{"/bin/bash", "-c", task.Description.GetCommand()}
 	}
 
 	if injDockerLog, ok := de.Logger.(DockerLogInjector); ok {

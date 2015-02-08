@@ -3,12 +3,11 @@ package strive
 import (
 	"errors"
 	"expvar"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/vektra/vega"
+	"code.google.com/p/gogoprotobuf/proto"
 )
 
 var (
@@ -32,7 +31,7 @@ type HostAgent struct {
 	watchwg      sync.WaitGroup
 	runningTasks map[string]TaskHandle
 
-	messages chan *vega.Message
+	messages chan *Message
 	shutdown chan bool
 	done     chan error
 
@@ -48,7 +47,7 @@ func NewHostAgent(id, txn string, hbtime time.Duration, mb MessageBus, se TaskEx
 		mb:           mb,
 		se:           se,
 		runningTasks: make(map[string]TaskHandle),
-		messages:     make(chan *vega.Message, cReceiveBacklog),
+		messages:     make(chan *Message, cReceiveBacklog),
 		shutdown:     make(chan bool, 3),
 		done:         make(chan error),
 
@@ -96,12 +95,12 @@ func (ha *HostAgent) process() {
 				return
 			}
 
-			var dis vega.Message
+			dis := HostStatusChange{
+				Status: HostStatus_DISABLED.Enum(),
+				HostId: proto.String(ha.Id),
+			}.Encode()
 
-			dis.Type = "HostStatusChange"
-
-			setBody(&dis, &HostStatusChange{Status: "disabled", Host: ha.Id})
-			ha.mb.SendMessage(ha.txn, &dis)
+			ha.mb.SendMessage(ha.txn, dis)
 
 			waitChan := make(chan struct{})
 
@@ -117,12 +116,12 @@ func (ha *HostAgent) process() {
 				// gtfo!
 			}
 
-			var vm vega.Message
+			sc := HostStatusChange{
+				Status: HostStatus_OFFLINE.Enum(),
+				HostId: proto.String(ha.Id),
+			}.Encode()
 
-			vm.Type = "HostStatusChange"
-
-			setBody(&vm, &HostStatusChange{Status: "offline", Host: ha.Id})
-			ha.mb.SendMessage(ha.txn, &vm)
+			ha.mb.SendMessage(ha.txn, sc)
 
 			close(ha.done)
 			return
@@ -130,22 +129,18 @@ func (ha *HostAgent) process() {
 	}
 }
 
-func (ha *HostAgent) HandleMessage(vm *vega.Message) error {
+func (ha *HostAgent) HandleMessage(vm *Message) error {
 	haMessages.Add(1)
 
 	msg, err := decodeMessage(vm)
 	if err != nil {
 		haErrors.Add(1)
 
-		var em vega.Message
-		em.Type = "GenericError"
-		setBody(&em,
-			&GenericError{
-				fmt.Sprintf("%s: %s", err, vm.Type),
-			},
-		)
+		em := GenericError{
+			Error: UnknownMessage(vm.Type),
+		}.Encode()
 
-		ha.mb.SendMessage(vm.ReplyTo, &em)
+		ha.mb.SendMessage(vm.ReplyTo, em)
 
 		return err
 	}
@@ -163,21 +158,16 @@ func (ha *HostAgent) HandleMessage(vm *vega.Message) error {
 
 	haErrors.Add(1)
 
-	var em vega.Message
-	em.Type = "GenericError"
+	em := GenericError{
+		Error: UnknownMessage(vm.Type),
+	}.Encode()
 
-	ge := &GenericError{
-		fmt.Sprintf("%s: %s", ErrUnknownMessage.Error(), vm.Type),
-	}
-
-	setBody(&em, ge)
-
-	ha.mb.SendMessage(vm.ReplyTo, &em)
+	ha.mb.SendMessage(vm.ReplyTo, em)
 
 	return ErrUnknownMessage
 }
 
-func (ha *HostAgent) listTasks(vm *vega.Message, lt *ListTasks) error {
+func (ha *HostAgent) listTasks(vm *Message, lt *ListTasks) error {
 	var tasks []string
 
 	for task, _ := range ha.runningTasks {
@@ -186,42 +176,45 @@ func (ha *HostAgent) listTasks(vm *vega.Message, lt *ListTasks) error {
 
 	sort.Strings(tasks)
 
-	var ct vega.Message
-	ct.Type = "CurrentTasks"
-	setBody(&ct, &CurrentTasks{lt.OpId, tasks})
+	ct := CurrentTasks{
+		OpId:    lt.OpId,
+		TaskIds: tasks,
+	}.Encode()
 
-	return ha.mb.SendMessage(vm.ReplyTo, &ct)
+	return ha.mb.SendMessage(vm.ReplyTo, ct)
 }
 
-func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
+func (ha *HostAgent) startTask(vm *Message, st *StartTask) error {
 	haStartTasks.Add(1)
 
-	var ack vega.Message
-	ack.Type = "OpAcknowledged"
-	setBody(&ack, &OpAcknowledged{st.OpId})
+	ack := OpAcknowledged{OpId: st.OpId}.Encode()
+	ha.mb.SendMessage(vm.ReplyTo, ack)
 
-	ha.mb.SendMessage(vm.ReplyTo, &ack)
-
-	var out vega.Message
+	var out *Message
 
 	th, err := ha.se.Run(st.Task)
 	if err != nil {
 		haErrors.Add(1)
 
-		out.Type = "TaskStatusChange"
-		setBody(&out, &TaskStatusChange{Id: st.Task.Id, Status: "error", Error: err.Error()})
+		out := TaskStatusChange{
+			TaskId: st.Task.TaskId,
+			Status: TaskStatus_ERROR.Enum(),
+			Error:  proto.String(err.Error()),
+		}.Encode()
 
-		ha.mb.SendMessage(vm.ReplyTo, &out)
+		ha.mb.SendMessage(vm.ReplyTo, out)
 
 		return err
 	}
 
 	haRunningTasks.Add(1)
 
-	out.Type = "TaskStatusChange"
-	setBody(&out, &TaskStatusChange{Id: st.Task.Id, Status: "running"})
+	out = TaskStatusChange{
+		TaskId: st.Task.TaskId,
+		Status: TaskStatus_RUNNING.Enum(),
+	}.Encode()
 
-	ha.mb.SendMessage(vm.ReplyTo, &out)
+	ha.mb.SendMessage(vm.ReplyTo, out)
 
 	ha.watchwg.Add(1)
 	go func() {
@@ -231,16 +224,22 @@ func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
 
 		haRunningTasks.Add(-1)
 
-		var out vega.Message
-		out.Type = "TaskStatusChange"
+		var out *Message
 
 		if err != nil {
-			setBody(&out, &TaskStatusChange{Id: st.Task.Id, Status: "failed", Error: err.Error()})
+			out = TaskStatusChange{
+				TaskId: st.Task.TaskId,
+				Status: TaskStatus_FAILED.Enum(),
+				Error:  proto.String(err.Error()),
+			}.Encode()
 		} else {
-			setBody(&out, &TaskStatusChange{Id: st.Task.Id, Status: "finished"})
+			out = TaskStatusChange{
+				TaskId: st.Task.TaskId,
+				Status: TaskStatus_FINISHED.Enum(),
+			}.Encode()
 		}
 
-		ha.mb.SendMessage(vm.ReplyTo, &out)
+		ha.mb.SendMessage(vm.ReplyTo, out)
 	}()
 
 	return nil
@@ -248,38 +247,40 @@ func (ha *HostAgent) startTask(vm *vega.Message, st *StartTask) error {
 
 var ErrUnknownTask = errors.New("unknown task")
 
-func (ha *HostAgent) stopTask(vm *vega.Message, st *StopTask) error {
+func (ha *HostAgent) stopTask(vm *Message, st *StopTask) error {
 	haStopTasks.Add(1)
 
-	var status vega.Message
-	status.Type = "OpAcknowledged"
-	setBody(&status, &OpAcknowledged{st.OpId})
+	status := OpAcknowledged{OpId: st.OpId}.Encode()
+	ha.mb.SendMessage(vm.ReplyTo, status)
 
-	ha.mb.SendMessage(vm.ReplyTo, &status)
+	th, ok := ha.runningTasks[st.GetTaskId()]
 
-	th, ok := ha.runningTasks[st.Id]
 	if !ok {
 		haErrors.Add(1)
 		haUnknownTasks.Add(1)
 
-		var se vega.Message
-		se.Type = "StopError"
-		setBody(&se, &StopError{OpId: st.OpId, Id: st.Id, Error: ErrUnknownTask.Error()})
+		se := StopError{
+			OpId:   st.OpId,
+			TaskId: st.TaskId,
+			Error:  UnknownTask(st.GetTaskId()),
+		}.Encode()
 
-		ha.mb.SendMessage(vm.ReplyTo, &se)
+		ha.mb.SendMessage(vm.ReplyTo, se)
 
 		return ErrUnknownTask
 	}
 
-	err := th.Stop(st.Force)
+	err := th.Stop(st.GetForce())
 	if err != nil {
 		haErrors.Add(1)
 
-		var se vega.Message
-		se.Type = "StopError"
-		setBody(&se, &StopError{OpId: st.OpId, Id: st.Id, Error: err.Error()})
+		se := StopError{
+			OpId:   st.OpId,
+			TaskId: st.TaskId,
+			Error:  UnknownError(err.Error()),
+		}.Encode()
 
-		ha.mb.SendMessage(vm.ReplyTo, &se)
+		ha.mb.SendMessage(vm.ReplyTo, se)
 
 		return err
 	}
@@ -287,10 +288,10 @@ func (ha *HostAgent) stopTask(vm *vega.Message, st *StopTask) error {
 	return nil
 }
 
-func (ha *HostAgent) checkTasks(vm *vega.Message, ct *CheckTasks) error {
+func (ha *HostAgent) checkTasks(vm *Message, ct *CheckTasks) error {
 	var missing []string
 
-	for _, id := range ct.Tasks {
+	for _, id := range ct.TaskIds {
 		if _, ok := ha.runningTasks[id]; !ok {
 			missing = append(missing, id)
 		}
@@ -301,7 +302,7 @@ func (ha *HostAgent) checkTasks(vm *vega.Message, ct *CheckTasks) error {
 	for local, _ := range ha.runningTasks {
 		found := false
 
-		for _, remote := range ct.Tasks {
+		for _, remote := range ct.TaskIds {
 			if local == remote {
 				found = true
 				break
@@ -313,17 +314,20 @@ func (ha *HostAgent) checkTasks(vm *vega.Message, ct *CheckTasks) error {
 		}
 	}
 
-	var out vega.Message
-	out.Type = "CheckedTaskList"
-	setBody(&out, &CheckedTaskList{Host: ha.Id, Missing: missing, Unknown: unknown})
+	out := CheckedTaskList{
+		HostId:  proto.String(ha.Id),
+		Missing: missing,
+		Unknown: unknown,
+	}.Encode()
 
-	return ha.mb.SendMessage(vm.ReplyTo, &out)
+	return ha.mb.SendMessage(vm.ReplyTo, out)
 }
 
 func (ha *HostAgent) SendHeartbeat(mailbox string) error {
-	var vm vega.Message
-	vm.Type = "HostStatusChange"
-	setBody(&vm, &HostStatusChange{Status: "online"})
+	sc := HostStatusChange{
+		Status: HostStatus_ONLINE.Enum(),
+		HostId: proto.String(ha.Id),
+	}.Encode()
 
-	return ha.mb.SendMessage(mailbox, &vm)
+	return ha.mb.SendMessage(mailbox, sc)
 }
