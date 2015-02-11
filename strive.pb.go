@@ -10,6 +10,7 @@
 
 	It has these top-level messages:
 		Range
+		Ranges
 		Value
 		Variable
 		Resource
@@ -35,22 +36,20 @@
 */
 package strive
 
-import proto "code.google.com/p/gogoprotobuf/proto"
+import proto "github.com/gogo/protobuf/proto"
 import math "math"
 
-// discarding unused import gogoproto "code.google.com/p/gogoprotobuf/gogoproto/gogo.pb"
+// discarding unused import gogoproto "github.com/gogo/protobuf/gogoproto/gogo.pb"
 import tai64n "github.com/vektra/tai64n"
 
-import io1 "io"
-import fmt2 "fmt"
-import code_google_com_p_gogoprotobuf_proto1 "code.google.com/p/gogoprotobuf/proto"
+import io "io"
+import fmt "fmt"
+import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
 
-import fmt3 "fmt"
 import strings "strings"
 import reflect "reflect"
 
-import fmt4 "fmt"
-import bytes1 "bytes"
+import bytes "bytes"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -147,7 +146,7 @@ const (
 	Value_STRING Value_ValueType = 1
 	Value_BYTES  Value_ValueType = 2
 	Value_BOOL   Value_ValueType = 3
-	Value_RANGE  Value_ValueType = 4
+	Value_RANGES Value_ValueType = 4
 	Value_LIST   Value_ValueType = 5
 	Value_MAP    Value_ValueType = 6
 )
@@ -157,7 +156,7 @@ var Value_ValueType_name = map[int32]string{
 	1: "STRING",
 	2: "BYTES",
 	3: "BOOL",
-	4: "RANGE",
+	4: "RANGES",
 	5: "LIST",
 	6: "MAP",
 }
@@ -166,7 +165,7 @@ var Value_ValueType_value = map[string]int32{
 	"STRING": 1,
 	"BYTES":  2,
 	"BOOL":   3,
-	"RANGE":  4,
+	"RANGES": 4,
 	"LIST":   5,
 	"MAP":    6,
 }
@@ -352,13 +351,28 @@ func (m *Range) GetEnd() int64 {
 	return 0
 }
 
+type Ranges struct {
+	Ranges           []*Range `protobuf:"bytes,1,rep,name=ranges" json:"ranges,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *Ranges) Reset()      { *m = Ranges{} }
+func (*Ranges) ProtoMessage() {}
+
+func (m *Ranges) GetRanges() []*Range {
+	if m != nil {
+		return m.Ranges
+	}
+	return nil
+}
+
 type Value struct {
 	ValueType        *Value_ValueType `protobuf:"varint,1,req,name=value_type,enum=strive.Value_ValueType" json:"value_type,omitempty"`
 	IntVal           *int64           `protobuf:"varint,2,opt,name=int_val" json:"int_val,omitempty"`
 	StrVal           *string          `protobuf:"bytes,3,opt,name=str_val" json:"str_val,omitempty"`
 	BytesVal         []byte           `protobuf:"bytes,4,opt,name=bytes_val" json:"bytes_val,omitempty"`
 	BoolVal          *bool            `protobuf:"varint,5,opt,name=bool_val" json:"bool_val,omitempty"`
-	RangeVal         *Range           `protobuf:"bytes,6,opt,name=range_val" json:"range_val,omitempty"`
+	RangeVal         *Ranges          `protobuf:"bytes,6,opt,name=range_val" json:"range_val,omitempty"`
 	ListVal          []*Value         `protobuf:"bytes,7,rep,name=list_val" json:"list_val,omitempty"`
 	MapVal           []*Variable      `protobuf:"bytes,8,rep,name=map_val" json:"map_val,omitempty"`
 	XXX_unrecognized []byte           `json:"-"`
@@ -402,7 +416,7 @@ func (m *Value) GetBoolVal() bool {
 	return false
 }
 
-func (m *Value) GetRangeVal() *Range {
+func (m *Value) GetRangeVal() *Ranges {
 	if m != nil {
 		return m.RangeVal
 	}
@@ -1064,7 +1078,7 @@ func (m *Range) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1078,12 +1092,12 @@ func (m *Range) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Start", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Start", wireType)
 			}
 			var v int64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1095,12 +1109,12 @@ func (m *Range) Unmarshal(data []byte) error {
 			m.Start = &v
 		case 2:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field End", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field End", wireType)
 			}
 			var v int64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1120,12 +1134,77 @@ func (m *Range) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
+			index += skippy
+		}
+	}
+	return nil
+}
+func (m *Ranges) Unmarshal(data []byte) error {
+	l := len(data)
+	index := 0
+	for index < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if index >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[index]
+			index++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ranges", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Ranges = append(m.Ranges, &Range{})
+			m.Ranges[len(m.Ranges)-1].Unmarshal(data[index:postIndex])
+			index = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			index -= sizeOfWire
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
+			if err != nil {
+				return err
+			}
+			if (index + skippy) > l {
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -1140,7 +1219,7 @@ func (m *Value) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1154,12 +1233,12 @@ func (m *Value) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field ValueType", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ValueType", wireType)
 			}
 			var v Value_ValueType
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1171,12 +1250,12 @@ func (m *Value) Unmarshal(data []byte) error {
 			m.ValueType = &v
 		case 2:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field IntVal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field IntVal", wireType)
 			}
 			var v int64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1188,12 +1267,12 @@ func (m *Value) Unmarshal(data []byte) error {
 			m.IntVal = &v
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field StrVal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field StrVal", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1204,19 +1283,19 @@ func (m *Value) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.StrVal = &s
 			index = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field BytesVal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BytesVal", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1227,18 +1306,18 @@ func (m *Value) Unmarshal(data []byte) error {
 			}
 			postIndex := index + byteLen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
-			m.BytesVal = append(m.BytesVal, data[index:postIndex]...)
+			m.BytesVal = append([]byte{}, data[index:postIndex]...)
 			index = postIndex
 		case 5:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field BoolVal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BoolVal", wireType)
 			}
 			var v int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1251,12 +1330,12 @@ func (m *Value) Unmarshal(data []byte) error {
 			m.BoolVal = &b
 		case 6:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field RangeVal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field RangeVal", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1267,10 +1346,10 @@ func (m *Value) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.RangeVal == nil {
-				m.RangeVal = &Range{}
+				m.RangeVal = &Ranges{}
 			}
 			if err := m.RangeVal.Unmarshal(data[index:postIndex]); err != nil {
 				return err
@@ -1278,12 +1357,12 @@ func (m *Value) Unmarshal(data []byte) error {
 			index = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field ListVal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ListVal", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1294,19 +1373,19 @@ func (m *Value) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.ListVal = append(m.ListVal, &Value{})
 			m.ListVal[len(m.ListVal)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
 		case 8:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field MapVal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MapVal", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1317,7 +1396,7 @@ func (m *Value) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.MapVal = append(m.MapVal, &Variable{})
 			m.MapVal[len(m.MapVal)-1].Unmarshal(data[index:postIndex])
@@ -1332,12 +1411,12 @@ func (m *Value) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -1352,7 +1431,7 @@ func (m *Variable) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1366,12 +1445,12 @@ func (m *Variable) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Name", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1382,19 +1461,19 @@ func (m *Variable) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.Name = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Value", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1405,7 +1484,7 @@ func (m *Variable) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.Value == nil {
 				m.Value = &Value{}
@@ -1424,12 +1503,12 @@ func (m *Variable) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -1444,7 +1523,7 @@ func (m *Resource) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1458,12 +1537,12 @@ func (m *Resource) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Type", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
 			var v Resource_ResourceType
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1475,12 +1554,12 @@ func (m *Resource) Unmarshal(data []byte) error {
 			m.Type = &v
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field CustomType", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CustomType", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1491,19 +1570,19 @@ func (m *Resource) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.CustomType = &s
 			index = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Value", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1514,7 +1593,7 @@ func (m *Resource) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.Value == nil {
 				m.Value = &Value{}
@@ -1533,12 +1612,12 @@ func (m *Resource) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -1553,7 +1632,7 @@ func (m *Host) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1567,12 +1646,12 @@ func (m *Host) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field HostId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HostId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1583,19 +1662,19 @@ func (m *Host) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.HostId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Name", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1606,19 +1685,19 @@ func (m *Host) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.Name = &s
 			index = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Resources", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Resources", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1629,19 +1708,19 @@ func (m *Host) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Resources = append(m.Resources, &Resource{})
 			m.Resources[len(m.Resources)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
 		case 4:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Status", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
 			}
 			var v HostStatus
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1653,12 +1732,12 @@ func (m *Host) Unmarshal(data []byte) error {
 			m.Status = &v
 		case 5:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field LastHeartbeat", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LastHeartbeat", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1669,7 +1748,7 @@ func (m *Host) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.LastHeartbeat == nil {
 				m.LastHeartbeat = &tai64n.TAI64N{}
@@ -1688,12 +1767,12 @@ func (m *Host) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -1708,7 +1787,7 @@ func (m *PortBinding) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1722,12 +1801,12 @@ func (m *PortBinding) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Host", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Host", wireType)
 			}
 			var v int64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1739,12 +1818,12 @@ func (m *PortBinding) Unmarshal(data []byte) error {
 			m.Host = &v
 		case 2:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Container", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Container", wireType)
 			}
 			var v int64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1756,12 +1835,12 @@ func (m *PortBinding) Unmarshal(data []byte) error {
 			m.Container = &v
 		case 3:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Protocol", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Protocol", wireType)
 			}
 			var v PortBinding_Protocol
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1781,12 +1860,12 @@ func (m *PortBinding) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -1801,7 +1880,7 @@ func (m *ContainerInfo) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1815,12 +1894,12 @@ func (m *ContainerInfo) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
 			}
 			var v ContainerInfo_ContainerMode
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1832,12 +1911,12 @@ func (m *ContainerInfo) Unmarshal(data []byte) error {
 			m.Mode = &v
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Image", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Image", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1848,19 +1927,19 @@ func (m *ContainerInfo) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.Image = &s
 			index = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Ports", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Ports", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1871,7 +1950,7 @@ func (m *ContainerInfo) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Ports = append(m.Ports, &PortBinding{})
 			m.Ports[len(m.Ports)-1].Unmarshal(data[index:postIndex])
@@ -1886,12 +1965,12 @@ func (m *ContainerInfo) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -1906,7 +1985,7 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -1920,12 +1999,12 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Command", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Command", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1936,19 +2015,19 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.Command = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Exec", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Exec", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1959,18 +2038,18 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Exec = append(m.Exec, string(data[index:postIndex]))
 			index = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Env", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Env", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -1981,19 +2060,19 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Env = append(m.Env, &Variable{})
 			m.Env[len(m.Env)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Urls", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Urls", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2004,18 +2083,18 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Urls = append(m.Urls, string(data[index:postIndex]))
 			index = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Config", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Config", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2026,19 +2105,19 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Config = append(m.Config, &Variable{})
 			m.Config[len(m.Config)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
 		case 6:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2049,19 +2128,19 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Metadata = append(m.Metadata, &Variable{})
 			m.Metadata[len(m.Metadata)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Labels", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Labels", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2072,18 +2151,18 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Labels = append(m.Labels, string(data[index:postIndex]))
 			index = postIndex
 		case 8:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Container", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Container", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2094,7 +2173,7 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.Container == nil {
 				m.Container = &ContainerInfo{}
@@ -2113,12 +2192,12 @@ func (m *TaskDescription) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2133,7 +2212,7 @@ func (m *HostResource) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2147,12 +2226,12 @@ func (m *HostResource) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field HostId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HostId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2163,19 +2242,19 @@ func (m *HostResource) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.HostId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Resources", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Resources", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2186,7 +2265,7 @@ func (m *HostResource) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Resources = append(m.Resources, &Resource{})
 			m.Resources[len(m.Resources)-1].Unmarshal(data[index:postIndex])
@@ -2201,12 +2280,12 @@ func (m *HostResource) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2221,7 +2300,7 @@ func (m *Task) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2235,12 +2314,12 @@ func (m *Task) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2251,19 +2330,19 @@ func (m *Task) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.TaskId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field HostId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HostId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2274,19 +2353,19 @@ func (m *Task) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.HostId = &s
 			index = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field SchedulerId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SchedulerId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2297,19 +2376,19 @@ func (m *Task) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.SchedulerId = &s
 			index = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Description", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Description", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2320,7 +2399,7 @@ func (m *Task) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.Description == nil {
 				m.Description = &TaskDescription{}
@@ -2331,12 +2410,12 @@ func (m *Task) Unmarshal(data []byte) error {
 			index = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Resources", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Resources", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2347,19 +2426,19 @@ func (m *Task) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Resources = append(m.Resources, &HostResource{})
 			m.Resources[len(m.Resources)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
 		case 6:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Status", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
 			}
 			var v TaskStatus
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2371,12 +2450,12 @@ func (m *Task) Unmarshal(data []byte) error {
 			m.Status = &v
 		case 7:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field LastUpdate", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LastUpdate", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2387,7 +2466,7 @@ func (m *Task) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.LastUpdate == nil {
 				m.LastUpdate = &tai64n.TAI64N{}
@@ -2406,12 +2485,12 @@ func (m *Task) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2426,7 +2505,7 @@ func (m *UpdateState) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2440,12 +2519,12 @@ func (m *UpdateState) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field AddHosts", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AddHosts", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2456,19 +2535,19 @@ func (m *UpdateState) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.AddHosts = append(m.AddHosts, &Host{})
 			m.AddHosts[len(m.AddHosts)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field AddTasks", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AddTasks", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2479,7 +2558,7 @@ func (m *UpdateState) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.AddTasks = append(m.AddTasks, &Task{})
 			m.AddTasks[len(m.AddTasks)-1].Unmarshal(data[index:postIndex])
@@ -2494,12 +2573,12 @@ func (m *UpdateState) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2514,7 +2593,7 @@ func (m *StartTask) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2528,12 +2607,12 @@ func (m *StartTask) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field OpId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OpId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2544,19 +2623,19 @@ func (m *StartTask) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.OpId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Task", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Task", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2567,7 +2646,7 @@ func (m *StartTask) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.Task == nil {
 				m.Task = &Task{}
@@ -2586,12 +2665,12 @@ func (m *StartTask) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2606,7 +2685,7 @@ func (m *StopTask) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2620,12 +2699,12 @@ func (m *StopTask) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field OpId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OpId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2636,19 +2715,19 @@ func (m *StopTask) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.OpId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2659,19 +2738,19 @@ func (m *StopTask) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.TaskId = &s
 			index = postIndex
 		case 3:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Force", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Force", wireType)
 			}
 			var v int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2692,12 +2771,12 @@ func (m *StopTask) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2712,7 +2791,7 @@ func (m *OpAcknowledged) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2726,12 +2805,12 @@ func (m *OpAcknowledged) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field OpId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OpId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2742,7 +2821,7 @@ func (m *OpAcknowledged) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.OpId = &s
@@ -2757,12 +2836,12 @@ func (m *OpAcknowledged) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2777,7 +2856,7 @@ func (m *TaskStatusChange) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2791,12 +2870,12 @@ func (m *TaskStatusChange) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2807,19 +2886,19 @@ func (m *TaskStatusChange) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.TaskId = &s
 			index = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Status", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
 			}
 			var v TaskStatus
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2831,12 +2910,12 @@ func (m *TaskStatusChange) Unmarshal(data []byte) error {
 			m.Status = &v
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Error", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2847,7 +2926,7 @@ func (m *TaskStatusChange) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.Error = &s
@@ -2862,12 +2941,12 @@ func (m *TaskStatusChange) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2882,7 +2961,7 @@ func (m *HostStatusChange) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2896,12 +2975,12 @@ func (m *HostStatusChange) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field HostId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HostId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2912,19 +2991,19 @@ func (m *HostStatusChange) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.HostId = &s
 			index = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Status", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
 			}
 			var v HostStatus
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2944,12 +3023,12 @@ func (m *HostStatusChange) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -2964,7 +3043,7 @@ func (m *ListTasks) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -2978,12 +3057,12 @@ func (m *ListTasks) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field OpId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OpId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -2994,7 +3073,7 @@ func (m *ListTasks) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.OpId = &s
@@ -3009,12 +3088,12 @@ func (m *ListTasks) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -3029,7 +3108,7 @@ func (m *CurrentTasks) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -3043,12 +3122,12 @@ func (m *CurrentTasks) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field OpId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OpId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3059,19 +3138,19 @@ func (m *CurrentTasks) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.OpId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field TaskIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskIds", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3082,7 +3161,7 @@ func (m *CurrentTasks) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.TaskIds = append(m.TaskIds, string(data[index:postIndex]))
 			index = postIndex
@@ -3096,12 +3175,12 @@ func (m *CurrentTasks) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -3116,7 +3195,7 @@ func (m *Error) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -3130,11 +3209,11 @@ func (m *Error) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field ErrorId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorId", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3145,12 +3224,12 @@ func (m *Error) Unmarshal(data []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Description", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Description", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3161,7 +3240,7 @@ func (m *Error) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.Description = &s
@@ -3176,12 +3255,12 @@ func (m *Error) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -3196,7 +3275,7 @@ func (m *GenericError) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -3210,12 +3289,12 @@ func (m *GenericError) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Error", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3226,7 +3305,7 @@ func (m *GenericError) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
 				m.Error = &Error{}
@@ -3245,12 +3324,12 @@ func (m *GenericError) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -3265,7 +3344,7 @@ func (m *StopError) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -3279,12 +3358,12 @@ func (m *StopError) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field OpId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OpId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3295,19 +3374,19 @@ func (m *StopError) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.OpId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3318,19 +3397,19 @@ func (m *StopError) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.TaskId = &s
 			index = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Error", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3341,7 +3420,7 @@ func (m *StopError) Unmarshal(data []byte) error {
 			}
 			postIndex := index + msglen
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
 				m.Error = &Error{}
@@ -3360,12 +3439,12 @@ func (m *StopError) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -3380,7 +3459,7 @@ func (m *CheckTasks) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -3394,12 +3473,12 @@ func (m *CheckTasks) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field TaskIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskIds", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3410,7 +3489,7 @@ func (m *CheckTasks) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.TaskIds = append(m.TaskIds, string(data[index:postIndex]))
 			index = postIndex
@@ -3424,12 +3503,12 @@ func (m *CheckTasks) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -3444,7 +3523,7 @@ func (m *CheckedTaskList) Unmarshal(data []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if index >= l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			b := data[index]
 			index++
@@ -3458,12 +3537,12 @@ func (m *CheckedTaskList) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field HostId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HostId", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3474,19 +3553,19 @@ func (m *CheckedTaskList) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			s := string(data[index:postIndex])
 			m.HostId = &s
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Missing", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Missing", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3497,18 +3576,18 @@ func (m *CheckedTaskList) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Missing = append(m.Missing, string(data[index:postIndex]))
 			index = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt2.Errorf("proto: wrong wireType = %d for field Unknown", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Unknown", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
-					return io1.ErrUnexpectedEOF
+					return io.ErrUnexpectedEOF
 				}
 				b := data[index]
 				index++
@@ -3519,7 +3598,7 @@ func (m *CheckedTaskList) Unmarshal(data []byte) error {
 			}
 			postIndex := index + int(stringLen)
 			if postIndex > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.Unknown = append(m.Unknown, string(data[index:postIndex]))
 			index = postIndex
@@ -3533,12 +3612,12 @@ func (m *CheckedTaskList) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
 			if (index + skippy) > l {
-				return io1.ErrUnexpectedEOF
+				return io.ErrUnexpectedEOF
 			}
 			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
 			index += skippy
@@ -3553,7 +3632,18 @@ func (this *Range) String() string {
 	s := strings.Join([]string{`&Range{`,
 		`Start:` + valueToStringStrive(this.Start) + `,`,
 		`End:` + valueToStringStrive(this.End) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Ranges) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Ranges{`,
+		`Ranges:` + strings.Replace(fmt.Sprintf("%v", this.Ranges), "Range", "Range", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3568,10 +3658,10 @@ func (this *Value) String() string {
 		`StrVal:` + valueToStringStrive(this.StrVal) + `,`,
 		`BytesVal:` + valueToStringStrive(this.BytesVal) + `,`,
 		`BoolVal:` + valueToStringStrive(this.BoolVal) + `,`,
-		`RangeVal:` + strings.Replace(fmt3.Sprintf("%v", this.RangeVal), "Range", "Range", 1) + `,`,
-		`ListVal:` + strings.Replace(fmt3.Sprintf("%v", this.ListVal), "Value", "Value", 1) + `,`,
-		`MapVal:` + strings.Replace(fmt3.Sprintf("%v", this.MapVal), "Variable", "Variable", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`RangeVal:` + strings.Replace(fmt.Sprintf("%v", this.RangeVal), "Ranges", "Ranges", 1) + `,`,
+		`ListVal:` + strings.Replace(fmt.Sprintf("%v", this.ListVal), "Value", "Value", 1) + `,`,
+		`MapVal:` + strings.Replace(fmt.Sprintf("%v", this.MapVal), "Variable", "Variable", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3582,8 +3672,8 @@ func (this *Variable) String() string {
 	}
 	s := strings.Join([]string{`&Variable{`,
 		`Name:` + valueToStringStrive(this.Name) + `,`,
-		`Value:` + strings.Replace(fmt3.Sprintf("%v", this.Value), "Value", "Value", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Value:` + strings.Replace(fmt.Sprintf("%v", this.Value), "Value", "Value", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3595,8 +3685,8 @@ func (this *Resource) String() string {
 	s := strings.Join([]string{`&Resource{`,
 		`Type:` + valueToStringStrive(this.Type) + `,`,
 		`CustomType:` + valueToStringStrive(this.CustomType) + `,`,
-		`Value:` + strings.Replace(fmt3.Sprintf("%v", this.Value), "Value", "Value", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Value:` + strings.Replace(fmt.Sprintf("%v", this.Value), "Value", "Value", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3608,10 +3698,10 @@ func (this *Host) String() string {
 	s := strings.Join([]string{`&Host{`,
 		`HostId:` + valueToStringStrive(this.HostId) + `,`,
 		`Name:` + valueToStringStrive(this.Name) + `,`,
-		`Resources:` + strings.Replace(fmt3.Sprintf("%v", this.Resources), "Resource", "Resource", 1) + `,`,
+		`Resources:` + strings.Replace(fmt.Sprintf("%v", this.Resources), "Resource", "Resource", 1) + `,`,
 		`Status:` + valueToStringStrive(this.Status) + `,`,
-		`LastHeartbeat:` + strings.Replace(fmt3.Sprintf("%v", this.LastHeartbeat), "TAI64N", "tai64n.TAI64N", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`LastHeartbeat:` + strings.Replace(fmt.Sprintf("%v", this.LastHeartbeat), "TAI64N", "tai64n.TAI64N", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3624,7 +3714,7 @@ func (this *PortBinding) String() string {
 		`Host:` + valueToStringStrive(this.Host) + `,`,
 		`Container:` + valueToStringStrive(this.Container) + `,`,
 		`Protocol:` + valueToStringStrive(this.Protocol) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3636,8 +3726,8 @@ func (this *ContainerInfo) String() string {
 	s := strings.Join([]string{`&ContainerInfo{`,
 		`Mode:` + valueToStringStrive(this.Mode) + `,`,
 		`Image:` + valueToStringStrive(this.Image) + `,`,
-		`Ports:` + strings.Replace(fmt3.Sprintf("%v", this.Ports), "PortBinding", "PortBinding", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Ports:` + strings.Replace(fmt.Sprintf("%v", this.Ports), "PortBinding", "PortBinding", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3648,14 +3738,14 @@ func (this *TaskDescription) String() string {
 	}
 	s := strings.Join([]string{`&TaskDescription{`,
 		`Command:` + valueToStringStrive(this.Command) + `,`,
-		`Exec:` + fmt3.Sprintf("%v", this.Exec) + `,`,
-		`Env:` + strings.Replace(fmt3.Sprintf("%v", this.Env), "Variable", "Variable", 1) + `,`,
-		`Urls:` + fmt3.Sprintf("%v", this.Urls) + `,`,
-		`Config:` + strings.Replace(fmt3.Sprintf("%v", this.Config), "Variable", "Variable", 1) + `,`,
-		`Metadata:` + strings.Replace(fmt3.Sprintf("%v", this.Metadata), "Variable", "Variable", 1) + `,`,
-		`Labels:` + fmt3.Sprintf("%v", this.Labels) + `,`,
-		`Container:` + strings.Replace(fmt3.Sprintf("%v", this.Container), "ContainerInfo", "ContainerInfo", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Exec:` + fmt.Sprintf("%v", this.Exec) + `,`,
+		`Env:` + strings.Replace(fmt.Sprintf("%v", this.Env), "Variable", "Variable", 1) + `,`,
+		`Urls:` + fmt.Sprintf("%v", this.Urls) + `,`,
+		`Config:` + strings.Replace(fmt.Sprintf("%v", this.Config), "Variable", "Variable", 1) + `,`,
+		`Metadata:` + strings.Replace(fmt.Sprintf("%v", this.Metadata), "Variable", "Variable", 1) + `,`,
+		`Labels:` + fmt.Sprintf("%v", this.Labels) + `,`,
+		`Container:` + strings.Replace(fmt.Sprintf("%v", this.Container), "ContainerInfo", "ContainerInfo", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3666,8 +3756,8 @@ func (this *HostResource) String() string {
 	}
 	s := strings.Join([]string{`&HostResource{`,
 		`HostId:` + valueToStringStrive(this.HostId) + `,`,
-		`Resources:` + strings.Replace(fmt3.Sprintf("%v", this.Resources), "Resource", "Resource", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Resources:` + strings.Replace(fmt.Sprintf("%v", this.Resources), "Resource", "Resource", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3680,11 +3770,11 @@ func (this *Task) String() string {
 		`TaskId:` + valueToStringStrive(this.TaskId) + `,`,
 		`HostId:` + valueToStringStrive(this.HostId) + `,`,
 		`SchedulerId:` + valueToStringStrive(this.SchedulerId) + `,`,
-		`Description:` + strings.Replace(fmt3.Sprintf("%v", this.Description), "TaskDescription", "TaskDescription", 1) + `,`,
-		`Resources:` + strings.Replace(fmt3.Sprintf("%v", this.Resources), "HostResource", "HostResource", 1) + `,`,
+		`Description:` + strings.Replace(fmt.Sprintf("%v", this.Description), "TaskDescription", "TaskDescription", 1) + `,`,
+		`Resources:` + strings.Replace(fmt.Sprintf("%v", this.Resources), "HostResource", "HostResource", 1) + `,`,
 		`Status:` + valueToStringStrive(this.Status) + `,`,
-		`LastUpdate:` + strings.Replace(fmt3.Sprintf("%v", this.LastUpdate), "TAI64N", "tai64n.TAI64N", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`LastUpdate:` + strings.Replace(fmt.Sprintf("%v", this.LastUpdate), "TAI64N", "tai64n.TAI64N", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3694,9 +3784,9 @@ func (this *UpdateState) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&UpdateState{`,
-		`AddHosts:` + strings.Replace(fmt3.Sprintf("%v", this.AddHosts), "Host", "Host", 1) + `,`,
-		`AddTasks:` + strings.Replace(fmt3.Sprintf("%v", this.AddTasks), "Task", "Task", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`AddHosts:` + strings.Replace(fmt.Sprintf("%v", this.AddHosts), "Host", "Host", 1) + `,`,
+		`AddTasks:` + strings.Replace(fmt.Sprintf("%v", this.AddTasks), "Task", "Task", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3707,8 +3797,8 @@ func (this *StartTask) String() string {
 	}
 	s := strings.Join([]string{`&StartTask{`,
 		`OpId:` + valueToStringStrive(this.OpId) + `,`,
-		`Task:` + strings.Replace(fmt3.Sprintf("%v", this.Task), "Task", "Task", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Task:` + strings.Replace(fmt.Sprintf("%v", this.Task), "Task", "Task", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3721,7 +3811,7 @@ func (this *StopTask) String() string {
 		`OpId:` + valueToStringStrive(this.OpId) + `,`,
 		`TaskId:` + valueToStringStrive(this.TaskId) + `,`,
 		`Force:` + valueToStringStrive(this.Force) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3732,7 +3822,7 @@ func (this *OpAcknowledged) String() string {
 	}
 	s := strings.Join([]string{`&OpAcknowledged{`,
 		`OpId:` + valueToStringStrive(this.OpId) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3745,7 +3835,7 @@ func (this *TaskStatusChange) String() string {
 		`TaskId:` + valueToStringStrive(this.TaskId) + `,`,
 		`Status:` + valueToStringStrive(this.Status) + `,`,
 		`Error:` + valueToStringStrive(this.Error) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3757,7 +3847,7 @@ func (this *HostStatusChange) String() string {
 	s := strings.Join([]string{`&HostStatusChange{`,
 		`HostId:` + valueToStringStrive(this.HostId) + `,`,
 		`Status:` + valueToStringStrive(this.Status) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3768,7 +3858,7 @@ func (this *ListTasks) String() string {
 	}
 	s := strings.Join([]string{`&ListTasks{`,
 		`OpId:` + valueToStringStrive(this.OpId) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3779,8 +3869,8 @@ func (this *CurrentTasks) String() string {
 	}
 	s := strings.Join([]string{`&CurrentTasks{`,
 		`OpId:` + valueToStringStrive(this.OpId) + `,`,
-		`TaskIds:` + fmt3.Sprintf("%v", this.TaskIds) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`TaskIds:` + fmt.Sprintf("%v", this.TaskIds) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3790,9 +3880,9 @@ func (this *Error) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Error{`,
-		`ErrorId:` + fmt3.Sprintf("%v", this.ErrorId) + `,`,
+		`ErrorId:` + fmt.Sprintf("%v", this.ErrorId) + `,`,
 		`Description:` + valueToStringStrive(this.Description) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3802,8 +3892,8 @@ func (this *GenericError) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&GenericError{`,
-		`Error:` + strings.Replace(fmt3.Sprintf("%v", this.Error), "Error", "Error", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Error:` + strings.Replace(fmt.Sprintf("%v", this.Error), "Error", "Error", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3815,8 +3905,8 @@ func (this *StopError) String() string {
 	s := strings.Join([]string{`&StopError{`,
 		`OpId:` + valueToStringStrive(this.OpId) + `,`,
 		`TaskId:` + valueToStringStrive(this.TaskId) + `,`,
-		`Error:` + strings.Replace(fmt3.Sprintf("%v", this.Error), "Error", "Error", 1) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Error:` + strings.Replace(fmt.Sprintf("%v", this.Error), "Error", "Error", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3826,8 +3916,8 @@ func (this *CheckTasks) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&CheckTasks{`,
-		`TaskIds:` + fmt3.Sprintf("%v", this.TaskIds) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`TaskIds:` + fmt.Sprintf("%v", this.TaskIds) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3838,9 +3928,9 @@ func (this *CheckedTaskList) String() string {
 	}
 	s := strings.Join([]string{`&CheckedTaskList{`,
 		`HostId:` + valueToStringStrive(this.HostId) + `,`,
-		`Missing:` + fmt3.Sprintf("%v", this.Missing) + `,`,
-		`Unknown:` + fmt3.Sprintf("%v", this.Unknown) + `,`,
-		`XXX_unrecognized:` + fmt3.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`Missing:` + fmt.Sprintf("%v", this.Missing) + `,`,
+		`Unknown:` + fmt.Sprintf("%v", this.Unknown) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3851,7 +3941,7 @@ func valueToStringStrive(v interface{}) string {
 		return "nil"
 	}
 	pv := reflect.Indirect(rv).Interface()
-	return fmt3.Sprintf("*%v", pv)
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *Range) Size() (n int) {
 	var l int
@@ -3867,6 +3957,22 @@ func (m *Range) Size() (n int) {
 	}
 	return n
 }
+
+func (m *Ranges) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Ranges) > 0 {
+		for _, e := range m.Ranges {
+			l = e.Size()
+			n += 1 + l + sovStrive(uint64(l))
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
 func (m *Value) Size() (n int) {
 	var l int
 	_ = l
@@ -3908,6 +4014,7 @@ func (m *Value) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Variable) Size() (n int) {
 	var l int
 	_ = l
@@ -3924,6 +4031,7 @@ func (m *Variable) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Resource) Size() (n int) {
 	var l int
 	_ = l
@@ -3943,6 +4051,7 @@ func (m *Resource) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Host) Size() (n int) {
 	var l int
 	_ = l
@@ -3972,6 +4081,7 @@ func (m *Host) Size() (n int) {
 	}
 	return n
 }
+
 func (m *PortBinding) Size() (n int) {
 	var l int
 	_ = l
@@ -3989,6 +4099,7 @@ func (m *PortBinding) Size() (n int) {
 	}
 	return n
 }
+
 func (m *ContainerInfo) Size() (n int) {
 	var l int
 	_ = l
@@ -4010,6 +4121,7 @@ func (m *ContainerInfo) Size() (n int) {
 	}
 	return n
 }
+
 func (m *TaskDescription) Size() (n int) {
 	var l int
 	_ = l
@@ -4062,6 +4174,7 @@ func (m *TaskDescription) Size() (n int) {
 	}
 	return n
 }
+
 func (m *HostResource) Size() (n int) {
 	var l int
 	_ = l
@@ -4080,6 +4193,7 @@ func (m *HostResource) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Task) Size() (n int) {
 	var l int
 	_ = l
@@ -4117,6 +4231,7 @@ func (m *Task) Size() (n int) {
 	}
 	return n
 }
+
 func (m *UpdateState) Size() (n int) {
 	var l int
 	_ = l
@@ -4137,6 +4252,7 @@ func (m *UpdateState) Size() (n int) {
 	}
 	return n
 }
+
 func (m *StartTask) Size() (n int) {
 	var l int
 	_ = l
@@ -4153,6 +4269,7 @@ func (m *StartTask) Size() (n int) {
 	}
 	return n
 }
+
 func (m *StopTask) Size() (n int) {
 	var l int
 	_ = l
@@ -4172,6 +4289,7 @@ func (m *StopTask) Size() (n int) {
 	}
 	return n
 }
+
 func (m *OpAcknowledged) Size() (n int) {
 	var l int
 	_ = l
@@ -4184,6 +4302,7 @@ func (m *OpAcknowledged) Size() (n int) {
 	}
 	return n
 }
+
 func (m *TaskStatusChange) Size() (n int) {
 	var l int
 	_ = l
@@ -4203,6 +4322,7 @@ func (m *TaskStatusChange) Size() (n int) {
 	}
 	return n
 }
+
 func (m *HostStatusChange) Size() (n int) {
 	var l int
 	_ = l
@@ -4218,6 +4338,7 @@ func (m *HostStatusChange) Size() (n int) {
 	}
 	return n
 }
+
 func (m *ListTasks) Size() (n int) {
 	var l int
 	_ = l
@@ -4230,6 +4351,7 @@ func (m *ListTasks) Size() (n int) {
 	}
 	return n
 }
+
 func (m *CurrentTasks) Size() (n int) {
 	var l int
 	_ = l
@@ -4248,6 +4370,7 @@ func (m *CurrentTasks) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Error) Size() (n int) {
 	var l int
 	_ = l
@@ -4261,6 +4384,7 @@ func (m *Error) Size() (n int) {
 	}
 	return n
 }
+
 func (m *GenericError) Size() (n int) {
 	var l int
 	_ = l
@@ -4273,6 +4397,7 @@ func (m *GenericError) Size() (n int) {
 	}
 	return n
 }
+
 func (m *StopError) Size() (n int) {
 	var l int
 	_ = l
@@ -4293,6 +4418,7 @@ func (m *StopError) Size() (n int) {
 	}
 	return n
 }
+
 func (m *CheckTasks) Size() (n int) {
 	var l int
 	_ = l
@@ -4307,6 +4433,7 @@ func (m *CheckTasks) Size() (n int) {
 	}
 	return n
 }
+
 func (m *CheckedTaskList) Size() (n int) {
 	var l int
 	_ = l
@@ -4375,6 +4502,40 @@ func (m *Range) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
+func (m *Ranges) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Ranges) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Ranges) > 0 {
+		for _, msg := range m.Ranges {
+			data[i] = 0xa
+			i++
+			i = encodeVarintStrive(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(data[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func (m *Value) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4461,6 +4622,7 @@ func (m *Value) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Variable) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4497,6 +4659,7 @@ func (m *Variable) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Resource) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4538,6 +4701,7 @@ func (m *Resource) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Host) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4597,6 +4761,7 @@ func (m *Host) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *PortBinding) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4632,6 +4797,7 @@ func (m *PortBinding) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *ContainerInfo) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4675,6 +4841,7 @@ func (m *ContainerInfo) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *TaskDescription) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4792,6 +4959,7 @@ func (m *TaskDescription) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *HostResource) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4830,6 +4998,7 @@ func (m *HostResource) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Task) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4905,6 +5074,7 @@ func (m *Task) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *UpdateState) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4949,6 +5119,7 @@ func (m *UpdateState) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *StartTask) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4985,6 +5156,7 @@ func (m *StartTask) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *StopTask) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5027,6 +5199,7 @@ func (m *StopTask) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *OpAcknowledged) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5053,6 +5226,7 @@ func (m *OpAcknowledged) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *TaskStatusChange) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5090,6 +5264,7 @@ func (m *TaskStatusChange) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *HostStatusChange) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5121,6 +5296,7 @@ func (m *HostStatusChange) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *ListTasks) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5147,6 +5323,7 @@ func (m *ListTasks) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *CurrentTasks) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5188,6 +5365,7 @@ func (m *CurrentTasks) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Error) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5217,6 +5395,7 @@ func (m *Error) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *GenericError) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5247,6 +5426,7 @@ func (m *GenericError) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *StopError) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5289,6 +5469,7 @@ func (m *StopError) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *CheckTasks) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5324,6 +5505,7 @@ func (m *CheckTasks) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *CheckedTaskList) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5380,6 +5562,7 @@ func (m *CheckedTaskList) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func encodeFixed64Strive(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	data[offset+1] = uint8(v >> 8)
@@ -5412,41 +5595,41 @@ func (this *Range) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*Range)
 	if !ok {
-		return fmt4.Errorf("that is not of type *Range")
+		return fmt.Errorf("that is not of type *Range")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *Range but is nil && this != nil")
+		return fmt.Errorf("that is type *Range but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *Rangebut is not nil && this == nil")
+		return fmt.Errorf("that is type *Rangebut is not nil && this == nil")
 	}
 	if this.Start != nil && that1.Start != nil {
 		if *this.Start != *that1.Start {
-			return fmt4.Errorf("Start this(%v) Not Equal that(%v)", *this.Start, *that1.Start)
+			return fmt.Errorf("Start this(%v) Not Equal that(%v)", *this.Start, *that1.Start)
 		}
 	} else if this.Start != nil {
-		return fmt4.Errorf("this.Start == nil && that.Start != nil")
+		return fmt.Errorf("this.Start == nil && that.Start != nil")
 	} else if that1.Start != nil {
-		return fmt4.Errorf("Start this(%v) Not Equal that(%v)", this.Start, that1.Start)
+		return fmt.Errorf("Start this(%v) Not Equal that(%v)", this.Start, that1.Start)
 	}
 	if this.End != nil && that1.End != nil {
 		if *this.End != *that1.End {
-			return fmt4.Errorf("End this(%v) Not Equal that(%v)", *this.End, *that1.End)
+			return fmt.Errorf("End this(%v) Not Equal that(%v)", *this.End, *that1.End)
 		}
 	} else if this.End != nil {
-		return fmt4.Errorf("this.End == nil && that.End != nil")
+		return fmt.Errorf("this.End == nil && that.End != nil")
 	} else if that1.End != nil {
-		return fmt4.Errorf("End this(%v) Not Equal that(%v)", this.End, that1.End)
+		return fmt.Errorf("End this(%v) Not Equal that(%v)", this.End, that1.End)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -5488,7 +5671,73 @@ func (this *Range) Equal(that interface{}) bool {
 	} else if that1.End != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return false
+	}
+	return true
+}
+func (this *Ranges) VerboseEqual(that interface{}) error {
+	if that == nil {
+		if this == nil {
+			return nil
+		}
+		return fmt.Errorf("that == nil && this != nil")
+	}
+
+	that1, ok := that.(*Ranges)
+	if !ok {
+		return fmt.Errorf("that is not of type *Ranges")
+	}
+	if that1 == nil {
+		if this == nil {
+			return nil
+		}
+		return fmt.Errorf("that is type *Ranges but is nil && this != nil")
+	} else if this == nil {
+		return fmt.Errorf("that is type *Rangesbut is not nil && this == nil")
+	}
+	if len(this.Ranges) != len(that1.Ranges) {
+		return fmt.Errorf("Ranges this(%v) Not Equal that(%v)", len(this.Ranges), len(that1.Ranges))
+	}
+	for i := range this.Ranges {
+		if !this.Ranges[i].Equal(that1.Ranges[i]) {
+			return fmt.Errorf("Ranges this[%v](%v) Not Equal that[%v](%v)", i, this.Ranges[i], i, that1.Ranges[i])
+		}
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	}
+	return nil
+}
+func (this *Ranges) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*Ranges)
+	if !ok {
+		return false
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if len(this.Ranges) != len(that1.Ranges) {
+		return false
+	}
+	for i := range this.Ranges {
+		if !this.Ranges[i].Equal(that1.Ranges[i]) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -5498,81 +5747,81 @@ func (this *Value) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*Value)
 	if !ok {
-		return fmt4.Errorf("that is not of type *Value")
+		return fmt.Errorf("that is not of type *Value")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *Value but is nil && this != nil")
+		return fmt.Errorf("that is type *Value but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *Valuebut is not nil && this == nil")
+		return fmt.Errorf("that is type *Valuebut is not nil && this == nil")
 	}
 	if this.ValueType != nil && that1.ValueType != nil {
 		if *this.ValueType != *that1.ValueType {
-			return fmt4.Errorf("ValueType this(%v) Not Equal that(%v)", *this.ValueType, *that1.ValueType)
+			return fmt.Errorf("ValueType this(%v) Not Equal that(%v)", *this.ValueType, *that1.ValueType)
 		}
 	} else if this.ValueType != nil {
-		return fmt4.Errorf("this.ValueType == nil && that.ValueType != nil")
+		return fmt.Errorf("this.ValueType == nil && that.ValueType != nil")
 	} else if that1.ValueType != nil {
-		return fmt4.Errorf("ValueType this(%v) Not Equal that(%v)", this.ValueType, that1.ValueType)
+		return fmt.Errorf("ValueType this(%v) Not Equal that(%v)", this.ValueType, that1.ValueType)
 	}
 	if this.IntVal != nil && that1.IntVal != nil {
 		if *this.IntVal != *that1.IntVal {
-			return fmt4.Errorf("IntVal this(%v) Not Equal that(%v)", *this.IntVal, *that1.IntVal)
+			return fmt.Errorf("IntVal this(%v) Not Equal that(%v)", *this.IntVal, *that1.IntVal)
 		}
 	} else if this.IntVal != nil {
-		return fmt4.Errorf("this.IntVal == nil && that.IntVal != nil")
+		return fmt.Errorf("this.IntVal == nil && that.IntVal != nil")
 	} else if that1.IntVal != nil {
-		return fmt4.Errorf("IntVal this(%v) Not Equal that(%v)", this.IntVal, that1.IntVal)
+		return fmt.Errorf("IntVal this(%v) Not Equal that(%v)", this.IntVal, that1.IntVal)
 	}
 	if this.StrVal != nil && that1.StrVal != nil {
 		if *this.StrVal != *that1.StrVal {
-			return fmt4.Errorf("StrVal this(%v) Not Equal that(%v)", *this.StrVal, *that1.StrVal)
+			return fmt.Errorf("StrVal this(%v) Not Equal that(%v)", *this.StrVal, *that1.StrVal)
 		}
 	} else if this.StrVal != nil {
-		return fmt4.Errorf("this.StrVal == nil && that.StrVal != nil")
+		return fmt.Errorf("this.StrVal == nil && that.StrVal != nil")
 	} else if that1.StrVal != nil {
-		return fmt4.Errorf("StrVal this(%v) Not Equal that(%v)", this.StrVal, that1.StrVal)
+		return fmt.Errorf("StrVal this(%v) Not Equal that(%v)", this.StrVal, that1.StrVal)
 	}
-	if !bytes1.Equal(this.BytesVal, that1.BytesVal) {
-		return fmt4.Errorf("BytesVal this(%v) Not Equal that(%v)", this.BytesVal, that1.BytesVal)
+	if !bytes.Equal(this.BytesVal, that1.BytesVal) {
+		return fmt.Errorf("BytesVal this(%v) Not Equal that(%v)", this.BytesVal, that1.BytesVal)
 	}
 	if this.BoolVal != nil && that1.BoolVal != nil {
 		if *this.BoolVal != *that1.BoolVal {
-			return fmt4.Errorf("BoolVal this(%v) Not Equal that(%v)", *this.BoolVal, *that1.BoolVal)
+			return fmt.Errorf("BoolVal this(%v) Not Equal that(%v)", *this.BoolVal, *that1.BoolVal)
 		}
 	} else if this.BoolVal != nil {
-		return fmt4.Errorf("this.BoolVal == nil && that.BoolVal != nil")
+		return fmt.Errorf("this.BoolVal == nil && that.BoolVal != nil")
 	} else if that1.BoolVal != nil {
-		return fmt4.Errorf("BoolVal this(%v) Not Equal that(%v)", this.BoolVal, that1.BoolVal)
+		return fmt.Errorf("BoolVal this(%v) Not Equal that(%v)", this.BoolVal, that1.BoolVal)
 	}
 	if !this.RangeVal.Equal(that1.RangeVal) {
-		return fmt4.Errorf("RangeVal this(%v) Not Equal that(%v)", this.RangeVal, that1.RangeVal)
+		return fmt.Errorf("RangeVal this(%v) Not Equal that(%v)", this.RangeVal, that1.RangeVal)
 	}
 	if len(this.ListVal) != len(that1.ListVal) {
-		return fmt4.Errorf("ListVal this(%v) Not Equal that(%v)", len(this.ListVal), len(that1.ListVal))
+		return fmt.Errorf("ListVal this(%v) Not Equal that(%v)", len(this.ListVal), len(that1.ListVal))
 	}
 	for i := range this.ListVal {
 		if !this.ListVal[i].Equal(that1.ListVal[i]) {
-			return fmt4.Errorf("ListVal this[%v](%v) Not Equal that[%v](%v)", i, this.ListVal[i], i, that1.ListVal[i])
+			return fmt.Errorf("ListVal this[%v](%v) Not Equal that[%v](%v)", i, this.ListVal[i], i, that1.ListVal[i])
 		}
 	}
 	if len(this.MapVal) != len(that1.MapVal) {
-		return fmt4.Errorf("MapVal this(%v) Not Equal that(%v)", len(this.MapVal), len(that1.MapVal))
+		return fmt.Errorf("MapVal this(%v) Not Equal that(%v)", len(this.MapVal), len(that1.MapVal))
 	}
 	for i := range this.MapVal {
 		if !this.MapVal[i].Equal(that1.MapVal[i]) {
-			return fmt4.Errorf("MapVal this[%v](%v) Not Equal that[%v](%v)", i, this.MapVal[i], i, that1.MapVal[i])
+			return fmt.Errorf("MapVal this[%v](%v) Not Equal that[%v](%v)", i, this.MapVal[i], i, that1.MapVal[i])
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -5623,7 +5872,7 @@ func (this *Value) Equal(that interface{}) bool {
 	} else if that1.StrVal != nil {
 		return false
 	}
-	if !bytes1.Equal(this.BytesVal, that1.BytesVal) {
+	if !bytes.Equal(this.BytesVal, that1.BytesVal) {
 		return false
 	}
 	if this.BoolVal != nil && that1.BoolVal != nil {
@@ -5654,7 +5903,7 @@ func (this *Value) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -5664,35 +5913,35 @@ func (this *Variable) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*Variable)
 	if !ok {
-		return fmt4.Errorf("that is not of type *Variable")
+		return fmt.Errorf("that is not of type *Variable")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *Variable but is nil && this != nil")
+		return fmt.Errorf("that is type *Variable but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *Variablebut is not nil && this == nil")
+		return fmt.Errorf("that is type *Variablebut is not nil && this == nil")
 	}
 	if this.Name != nil && that1.Name != nil {
 		if *this.Name != *that1.Name {
-			return fmt4.Errorf("Name this(%v) Not Equal that(%v)", *this.Name, *that1.Name)
+			return fmt.Errorf("Name this(%v) Not Equal that(%v)", *this.Name, *that1.Name)
 		}
 	} else if this.Name != nil {
-		return fmt4.Errorf("this.Name == nil && that.Name != nil")
+		return fmt.Errorf("this.Name == nil && that.Name != nil")
 	} else if that1.Name != nil {
-		return fmt4.Errorf("Name this(%v) Not Equal that(%v)", this.Name, that1.Name)
+		return fmt.Errorf("Name this(%v) Not Equal that(%v)", this.Name, that1.Name)
 	}
 	if !this.Value.Equal(that1.Value) {
-		return fmt4.Errorf("Value this(%v) Not Equal that(%v)", this.Value, that1.Value)
+		return fmt.Errorf("Value this(%v) Not Equal that(%v)", this.Value, that1.Value)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -5728,7 +5977,7 @@ func (this *Variable) Equal(that interface{}) bool {
 	if !this.Value.Equal(that1.Value) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -5738,44 +5987,44 @@ func (this *Resource) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*Resource)
 	if !ok {
-		return fmt4.Errorf("that is not of type *Resource")
+		return fmt.Errorf("that is not of type *Resource")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *Resource but is nil && this != nil")
+		return fmt.Errorf("that is type *Resource but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *Resourcebut is not nil && this == nil")
+		return fmt.Errorf("that is type *Resourcebut is not nil && this == nil")
 	}
 	if this.Type != nil && that1.Type != nil {
 		if *this.Type != *that1.Type {
-			return fmt4.Errorf("Type this(%v) Not Equal that(%v)", *this.Type, *that1.Type)
+			return fmt.Errorf("Type this(%v) Not Equal that(%v)", *this.Type, *that1.Type)
 		}
 	} else if this.Type != nil {
-		return fmt4.Errorf("this.Type == nil && that.Type != nil")
+		return fmt.Errorf("this.Type == nil && that.Type != nil")
 	} else if that1.Type != nil {
-		return fmt4.Errorf("Type this(%v) Not Equal that(%v)", this.Type, that1.Type)
+		return fmt.Errorf("Type this(%v) Not Equal that(%v)", this.Type, that1.Type)
 	}
 	if this.CustomType != nil && that1.CustomType != nil {
 		if *this.CustomType != *that1.CustomType {
-			return fmt4.Errorf("CustomType this(%v) Not Equal that(%v)", *this.CustomType, *that1.CustomType)
+			return fmt.Errorf("CustomType this(%v) Not Equal that(%v)", *this.CustomType, *that1.CustomType)
 		}
 	} else if this.CustomType != nil {
-		return fmt4.Errorf("this.CustomType == nil && that.CustomType != nil")
+		return fmt.Errorf("this.CustomType == nil && that.CustomType != nil")
 	} else if that1.CustomType != nil {
-		return fmt4.Errorf("CustomType this(%v) Not Equal that(%v)", this.CustomType, that1.CustomType)
+		return fmt.Errorf("CustomType this(%v) Not Equal that(%v)", this.CustomType, that1.CustomType)
 	}
 	if !this.Value.Equal(that1.Value) {
-		return fmt4.Errorf("Value this(%v) Not Equal that(%v)", this.Value, that1.Value)
+		return fmt.Errorf("Value this(%v) Not Equal that(%v)", this.Value, that1.Value)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -5820,7 +6069,7 @@ func (this *Resource) Equal(that interface{}) bool {
 	if !this.Value.Equal(that1.Value) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -5830,61 +6079,61 @@ func (this *Host) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*Host)
 	if !ok {
-		return fmt4.Errorf("that is not of type *Host")
+		return fmt.Errorf("that is not of type *Host")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *Host but is nil && this != nil")
+		return fmt.Errorf("that is type *Host but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *Hostbut is not nil && this == nil")
+		return fmt.Errorf("that is type *Hostbut is not nil && this == nil")
 	}
 	if this.HostId != nil && that1.HostId != nil {
 		if *this.HostId != *that1.HostId {
-			return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
+			return fmt.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
 		}
 	} else if this.HostId != nil {
-		return fmt4.Errorf("this.HostId == nil && that.HostId != nil")
+		return fmt.Errorf("this.HostId == nil && that.HostId != nil")
 	} else if that1.HostId != nil {
-		return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
+		return fmt.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
 	}
 	if this.Name != nil && that1.Name != nil {
 		if *this.Name != *that1.Name {
-			return fmt4.Errorf("Name this(%v) Not Equal that(%v)", *this.Name, *that1.Name)
+			return fmt.Errorf("Name this(%v) Not Equal that(%v)", *this.Name, *that1.Name)
 		}
 	} else if this.Name != nil {
-		return fmt4.Errorf("this.Name == nil && that.Name != nil")
+		return fmt.Errorf("this.Name == nil && that.Name != nil")
 	} else if that1.Name != nil {
-		return fmt4.Errorf("Name this(%v) Not Equal that(%v)", this.Name, that1.Name)
+		return fmt.Errorf("Name this(%v) Not Equal that(%v)", this.Name, that1.Name)
 	}
 	if len(this.Resources) != len(that1.Resources) {
-		return fmt4.Errorf("Resources this(%v) Not Equal that(%v)", len(this.Resources), len(that1.Resources))
+		return fmt.Errorf("Resources this(%v) Not Equal that(%v)", len(this.Resources), len(that1.Resources))
 	}
 	for i := range this.Resources {
 		if !this.Resources[i].Equal(that1.Resources[i]) {
-			return fmt4.Errorf("Resources this[%v](%v) Not Equal that[%v](%v)", i, this.Resources[i], i, that1.Resources[i])
+			return fmt.Errorf("Resources this[%v](%v) Not Equal that[%v](%v)", i, this.Resources[i], i, that1.Resources[i])
 		}
 	}
 	if this.Status != nil && that1.Status != nil {
 		if *this.Status != *that1.Status {
-			return fmt4.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
+			return fmt.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
 		}
 	} else if this.Status != nil {
-		return fmt4.Errorf("this.Status == nil && that.Status != nil")
+		return fmt.Errorf("this.Status == nil && that.Status != nil")
 	} else if that1.Status != nil {
-		return fmt4.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
+		return fmt.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
 	}
 	if !this.LastHeartbeat.Equal(that1.LastHeartbeat) {
-		return fmt4.Errorf("LastHeartbeat this(%v) Not Equal that(%v)", this.LastHeartbeat, that1.LastHeartbeat)
+		return fmt.Errorf("LastHeartbeat this(%v) Not Equal that(%v)", this.LastHeartbeat, that1.LastHeartbeat)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -5946,7 +6195,7 @@ func (this *Host) Equal(that interface{}) bool {
 	if !this.LastHeartbeat.Equal(that1.LastHeartbeat) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -5956,50 +6205,50 @@ func (this *PortBinding) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*PortBinding)
 	if !ok {
-		return fmt4.Errorf("that is not of type *PortBinding")
+		return fmt.Errorf("that is not of type *PortBinding")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *PortBinding but is nil && this != nil")
+		return fmt.Errorf("that is type *PortBinding but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *PortBindingbut is not nil && this == nil")
+		return fmt.Errorf("that is type *PortBindingbut is not nil && this == nil")
 	}
 	if this.Host != nil && that1.Host != nil {
 		if *this.Host != *that1.Host {
-			return fmt4.Errorf("Host this(%v) Not Equal that(%v)", *this.Host, *that1.Host)
+			return fmt.Errorf("Host this(%v) Not Equal that(%v)", *this.Host, *that1.Host)
 		}
 	} else if this.Host != nil {
-		return fmt4.Errorf("this.Host == nil && that.Host != nil")
+		return fmt.Errorf("this.Host == nil && that.Host != nil")
 	} else if that1.Host != nil {
-		return fmt4.Errorf("Host this(%v) Not Equal that(%v)", this.Host, that1.Host)
+		return fmt.Errorf("Host this(%v) Not Equal that(%v)", this.Host, that1.Host)
 	}
 	if this.Container != nil && that1.Container != nil {
 		if *this.Container != *that1.Container {
-			return fmt4.Errorf("Container this(%v) Not Equal that(%v)", *this.Container, *that1.Container)
+			return fmt.Errorf("Container this(%v) Not Equal that(%v)", *this.Container, *that1.Container)
 		}
 	} else if this.Container != nil {
-		return fmt4.Errorf("this.Container == nil && that.Container != nil")
+		return fmt.Errorf("this.Container == nil && that.Container != nil")
 	} else if that1.Container != nil {
-		return fmt4.Errorf("Container this(%v) Not Equal that(%v)", this.Container, that1.Container)
+		return fmt.Errorf("Container this(%v) Not Equal that(%v)", this.Container, that1.Container)
 	}
 	if this.Protocol != nil && that1.Protocol != nil {
 		if *this.Protocol != *that1.Protocol {
-			return fmt4.Errorf("Protocol this(%v) Not Equal that(%v)", *this.Protocol, *that1.Protocol)
+			return fmt.Errorf("Protocol this(%v) Not Equal that(%v)", *this.Protocol, *that1.Protocol)
 		}
 	} else if this.Protocol != nil {
-		return fmt4.Errorf("this.Protocol == nil && that.Protocol != nil")
+		return fmt.Errorf("this.Protocol == nil && that.Protocol != nil")
 	} else if that1.Protocol != nil {
-		return fmt4.Errorf("Protocol this(%v) Not Equal that(%v)", this.Protocol, that1.Protocol)
+		return fmt.Errorf("Protocol this(%v) Not Equal that(%v)", this.Protocol, that1.Protocol)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6050,7 +6299,7 @@ func (this *PortBinding) Equal(that interface{}) bool {
 	} else if that1.Protocol != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6060,49 +6309,49 @@ func (this *ContainerInfo) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*ContainerInfo)
 	if !ok {
-		return fmt4.Errorf("that is not of type *ContainerInfo")
+		return fmt.Errorf("that is not of type *ContainerInfo")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *ContainerInfo but is nil && this != nil")
+		return fmt.Errorf("that is type *ContainerInfo but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *ContainerInfobut is not nil && this == nil")
+		return fmt.Errorf("that is type *ContainerInfobut is not nil && this == nil")
 	}
 	if this.Mode != nil && that1.Mode != nil {
 		if *this.Mode != *that1.Mode {
-			return fmt4.Errorf("Mode this(%v) Not Equal that(%v)", *this.Mode, *that1.Mode)
+			return fmt.Errorf("Mode this(%v) Not Equal that(%v)", *this.Mode, *that1.Mode)
 		}
 	} else if this.Mode != nil {
-		return fmt4.Errorf("this.Mode == nil && that.Mode != nil")
+		return fmt.Errorf("this.Mode == nil && that.Mode != nil")
 	} else if that1.Mode != nil {
-		return fmt4.Errorf("Mode this(%v) Not Equal that(%v)", this.Mode, that1.Mode)
+		return fmt.Errorf("Mode this(%v) Not Equal that(%v)", this.Mode, that1.Mode)
 	}
 	if this.Image != nil && that1.Image != nil {
 		if *this.Image != *that1.Image {
-			return fmt4.Errorf("Image this(%v) Not Equal that(%v)", *this.Image, *that1.Image)
+			return fmt.Errorf("Image this(%v) Not Equal that(%v)", *this.Image, *that1.Image)
 		}
 	} else if this.Image != nil {
-		return fmt4.Errorf("this.Image == nil && that.Image != nil")
+		return fmt.Errorf("this.Image == nil && that.Image != nil")
 	} else if that1.Image != nil {
-		return fmt4.Errorf("Image this(%v) Not Equal that(%v)", this.Image, that1.Image)
+		return fmt.Errorf("Image this(%v) Not Equal that(%v)", this.Image, that1.Image)
 	}
 	if len(this.Ports) != len(that1.Ports) {
-		return fmt4.Errorf("Ports this(%v) Not Equal that(%v)", len(this.Ports), len(that1.Ports))
+		return fmt.Errorf("Ports this(%v) Not Equal that(%v)", len(this.Ports), len(that1.Ports))
 	}
 	for i := range this.Ports {
 		if !this.Ports[i].Equal(that1.Ports[i]) {
-			return fmt4.Errorf("Ports this[%v](%v) Not Equal that[%v](%v)", i, this.Ports[i], i, that1.Ports[i])
+			return fmt.Errorf("Ports this[%v](%v) Not Equal that[%v](%v)", i, this.Ports[i], i, that1.Ports[i])
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6152,7 +6401,7 @@ func (this *ContainerInfo) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6162,83 +6411,83 @@ func (this *TaskDescription) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*TaskDescription)
 	if !ok {
-		return fmt4.Errorf("that is not of type *TaskDescription")
+		return fmt.Errorf("that is not of type *TaskDescription")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *TaskDescription but is nil && this != nil")
+		return fmt.Errorf("that is type *TaskDescription but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *TaskDescriptionbut is not nil && this == nil")
+		return fmt.Errorf("that is type *TaskDescriptionbut is not nil && this == nil")
 	}
 	if this.Command != nil && that1.Command != nil {
 		if *this.Command != *that1.Command {
-			return fmt4.Errorf("Command this(%v) Not Equal that(%v)", *this.Command, *that1.Command)
+			return fmt.Errorf("Command this(%v) Not Equal that(%v)", *this.Command, *that1.Command)
 		}
 	} else if this.Command != nil {
-		return fmt4.Errorf("this.Command == nil && that.Command != nil")
+		return fmt.Errorf("this.Command == nil && that.Command != nil")
 	} else if that1.Command != nil {
-		return fmt4.Errorf("Command this(%v) Not Equal that(%v)", this.Command, that1.Command)
+		return fmt.Errorf("Command this(%v) Not Equal that(%v)", this.Command, that1.Command)
 	}
 	if len(this.Exec) != len(that1.Exec) {
-		return fmt4.Errorf("Exec this(%v) Not Equal that(%v)", len(this.Exec), len(that1.Exec))
+		return fmt.Errorf("Exec this(%v) Not Equal that(%v)", len(this.Exec), len(that1.Exec))
 	}
 	for i := range this.Exec {
 		if this.Exec[i] != that1.Exec[i] {
-			return fmt4.Errorf("Exec this[%v](%v) Not Equal that[%v](%v)", i, this.Exec[i], i, that1.Exec[i])
+			return fmt.Errorf("Exec this[%v](%v) Not Equal that[%v](%v)", i, this.Exec[i], i, that1.Exec[i])
 		}
 	}
 	if len(this.Env) != len(that1.Env) {
-		return fmt4.Errorf("Env this(%v) Not Equal that(%v)", len(this.Env), len(that1.Env))
+		return fmt.Errorf("Env this(%v) Not Equal that(%v)", len(this.Env), len(that1.Env))
 	}
 	for i := range this.Env {
 		if !this.Env[i].Equal(that1.Env[i]) {
-			return fmt4.Errorf("Env this[%v](%v) Not Equal that[%v](%v)", i, this.Env[i], i, that1.Env[i])
+			return fmt.Errorf("Env this[%v](%v) Not Equal that[%v](%v)", i, this.Env[i], i, that1.Env[i])
 		}
 	}
 	if len(this.Urls) != len(that1.Urls) {
-		return fmt4.Errorf("Urls this(%v) Not Equal that(%v)", len(this.Urls), len(that1.Urls))
+		return fmt.Errorf("Urls this(%v) Not Equal that(%v)", len(this.Urls), len(that1.Urls))
 	}
 	for i := range this.Urls {
 		if this.Urls[i] != that1.Urls[i] {
-			return fmt4.Errorf("Urls this[%v](%v) Not Equal that[%v](%v)", i, this.Urls[i], i, that1.Urls[i])
+			return fmt.Errorf("Urls this[%v](%v) Not Equal that[%v](%v)", i, this.Urls[i], i, that1.Urls[i])
 		}
 	}
 	if len(this.Config) != len(that1.Config) {
-		return fmt4.Errorf("Config this(%v) Not Equal that(%v)", len(this.Config), len(that1.Config))
+		return fmt.Errorf("Config this(%v) Not Equal that(%v)", len(this.Config), len(that1.Config))
 	}
 	for i := range this.Config {
 		if !this.Config[i].Equal(that1.Config[i]) {
-			return fmt4.Errorf("Config this[%v](%v) Not Equal that[%v](%v)", i, this.Config[i], i, that1.Config[i])
+			return fmt.Errorf("Config this[%v](%v) Not Equal that[%v](%v)", i, this.Config[i], i, that1.Config[i])
 		}
 	}
 	if len(this.Metadata) != len(that1.Metadata) {
-		return fmt4.Errorf("Metadata this(%v) Not Equal that(%v)", len(this.Metadata), len(that1.Metadata))
+		return fmt.Errorf("Metadata this(%v) Not Equal that(%v)", len(this.Metadata), len(that1.Metadata))
 	}
 	for i := range this.Metadata {
 		if !this.Metadata[i].Equal(that1.Metadata[i]) {
-			return fmt4.Errorf("Metadata this[%v](%v) Not Equal that[%v](%v)", i, this.Metadata[i], i, that1.Metadata[i])
+			return fmt.Errorf("Metadata this[%v](%v) Not Equal that[%v](%v)", i, this.Metadata[i], i, that1.Metadata[i])
 		}
 	}
 	if len(this.Labels) != len(that1.Labels) {
-		return fmt4.Errorf("Labels this(%v) Not Equal that(%v)", len(this.Labels), len(that1.Labels))
+		return fmt.Errorf("Labels this(%v) Not Equal that(%v)", len(this.Labels), len(that1.Labels))
 	}
 	for i := range this.Labels {
 		if this.Labels[i] != that1.Labels[i] {
-			return fmt4.Errorf("Labels this[%v](%v) Not Equal that[%v](%v)", i, this.Labels[i], i, that1.Labels[i])
+			return fmt.Errorf("Labels this[%v](%v) Not Equal that[%v](%v)", i, this.Labels[i], i, that1.Labels[i])
 		}
 	}
 	if !this.Container.Equal(that1.Container) {
-		return fmt4.Errorf("Container this(%v) Not Equal that(%v)", this.Container, that1.Container)
+		return fmt.Errorf("Container this(%v) Not Equal that(%v)", this.Container, that1.Container)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6322,7 +6571,7 @@ func (this *TaskDescription) Equal(that interface{}) bool {
 	if !this.Container.Equal(that1.Container) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6332,40 +6581,40 @@ func (this *HostResource) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*HostResource)
 	if !ok {
-		return fmt4.Errorf("that is not of type *HostResource")
+		return fmt.Errorf("that is not of type *HostResource")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *HostResource but is nil && this != nil")
+		return fmt.Errorf("that is type *HostResource but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *HostResourcebut is not nil && this == nil")
+		return fmt.Errorf("that is type *HostResourcebut is not nil && this == nil")
 	}
 	if this.HostId != nil && that1.HostId != nil {
 		if *this.HostId != *that1.HostId {
-			return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
+			return fmt.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
 		}
 	} else if this.HostId != nil {
-		return fmt4.Errorf("this.HostId == nil && that.HostId != nil")
+		return fmt.Errorf("this.HostId == nil && that.HostId != nil")
 	} else if that1.HostId != nil {
-		return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
+		return fmt.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
 	}
 	if len(this.Resources) != len(that1.Resources) {
-		return fmt4.Errorf("Resources this(%v) Not Equal that(%v)", len(this.Resources), len(that1.Resources))
+		return fmt.Errorf("Resources this(%v) Not Equal that(%v)", len(this.Resources), len(that1.Resources))
 	}
 	for i := range this.Resources {
 		if !this.Resources[i].Equal(that1.Resources[i]) {
-			return fmt4.Errorf("Resources this[%v](%v) Not Equal that[%v](%v)", i, this.Resources[i], i, that1.Resources[i])
+			return fmt.Errorf("Resources this[%v](%v) Not Equal that[%v](%v)", i, this.Resources[i], i, that1.Resources[i])
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6406,7 +6655,7 @@ func (this *HostResource) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6416,73 +6665,73 @@ func (this *Task) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*Task)
 	if !ok {
-		return fmt4.Errorf("that is not of type *Task")
+		return fmt.Errorf("that is not of type *Task")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *Task but is nil && this != nil")
+		return fmt.Errorf("that is type *Task but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *Taskbut is not nil && this == nil")
+		return fmt.Errorf("that is type *Taskbut is not nil && this == nil")
 	}
 	if this.TaskId != nil && that1.TaskId != nil {
 		if *this.TaskId != *that1.TaskId {
-			return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
+			return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
 		}
 	} else if this.TaskId != nil {
-		return fmt4.Errorf("this.TaskId == nil && that.TaskId != nil")
+		return fmt.Errorf("this.TaskId == nil && that.TaskId != nil")
 	} else if that1.TaskId != nil {
-		return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
+		return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
 	}
 	if this.HostId != nil && that1.HostId != nil {
 		if *this.HostId != *that1.HostId {
-			return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
+			return fmt.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
 		}
 	} else if this.HostId != nil {
-		return fmt4.Errorf("this.HostId == nil && that.HostId != nil")
+		return fmt.Errorf("this.HostId == nil && that.HostId != nil")
 	} else if that1.HostId != nil {
-		return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
+		return fmt.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
 	}
 	if this.SchedulerId != nil && that1.SchedulerId != nil {
 		if *this.SchedulerId != *that1.SchedulerId {
-			return fmt4.Errorf("SchedulerId this(%v) Not Equal that(%v)", *this.SchedulerId, *that1.SchedulerId)
+			return fmt.Errorf("SchedulerId this(%v) Not Equal that(%v)", *this.SchedulerId, *that1.SchedulerId)
 		}
 	} else if this.SchedulerId != nil {
-		return fmt4.Errorf("this.SchedulerId == nil && that.SchedulerId != nil")
+		return fmt.Errorf("this.SchedulerId == nil && that.SchedulerId != nil")
 	} else if that1.SchedulerId != nil {
-		return fmt4.Errorf("SchedulerId this(%v) Not Equal that(%v)", this.SchedulerId, that1.SchedulerId)
+		return fmt.Errorf("SchedulerId this(%v) Not Equal that(%v)", this.SchedulerId, that1.SchedulerId)
 	}
 	if !this.Description.Equal(that1.Description) {
-		return fmt4.Errorf("Description this(%v) Not Equal that(%v)", this.Description, that1.Description)
+		return fmt.Errorf("Description this(%v) Not Equal that(%v)", this.Description, that1.Description)
 	}
 	if len(this.Resources) != len(that1.Resources) {
-		return fmt4.Errorf("Resources this(%v) Not Equal that(%v)", len(this.Resources), len(that1.Resources))
+		return fmt.Errorf("Resources this(%v) Not Equal that(%v)", len(this.Resources), len(that1.Resources))
 	}
 	for i := range this.Resources {
 		if !this.Resources[i].Equal(that1.Resources[i]) {
-			return fmt4.Errorf("Resources this[%v](%v) Not Equal that[%v](%v)", i, this.Resources[i], i, that1.Resources[i])
+			return fmt.Errorf("Resources this[%v](%v) Not Equal that[%v](%v)", i, this.Resources[i], i, that1.Resources[i])
 		}
 	}
 	if this.Status != nil && that1.Status != nil {
 		if *this.Status != *that1.Status {
-			return fmt4.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
+			return fmt.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
 		}
 	} else if this.Status != nil {
-		return fmt4.Errorf("this.Status == nil && that.Status != nil")
+		return fmt.Errorf("this.Status == nil && that.Status != nil")
 	} else if that1.Status != nil {
-		return fmt4.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
+		return fmt.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
 	}
 	if !this.LastUpdate.Equal(that1.LastUpdate) {
-		return fmt4.Errorf("LastUpdate this(%v) Not Equal that(%v)", this.LastUpdate, that1.LastUpdate)
+		return fmt.Errorf("LastUpdate this(%v) Not Equal that(%v)", this.LastUpdate, that1.LastUpdate)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6556,7 +6805,7 @@ func (this *Task) Equal(that interface{}) bool {
 	if !this.LastUpdate.Equal(that1.LastUpdate) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6566,39 +6815,39 @@ func (this *UpdateState) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*UpdateState)
 	if !ok {
-		return fmt4.Errorf("that is not of type *UpdateState")
+		return fmt.Errorf("that is not of type *UpdateState")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *UpdateState but is nil && this != nil")
+		return fmt.Errorf("that is type *UpdateState but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *UpdateStatebut is not nil && this == nil")
+		return fmt.Errorf("that is type *UpdateStatebut is not nil && this == nil")
 	}
 	if len(this.AddHosts) != len(that1.AddHosts) {
-		return fmt4.Errorf("AddHosts this(%v) Not Equal that(%v)", len(this.AddHosts), len(that1.AddHosts))
+		return fmt.Errorf("AddHosts this(%v) Not Equal that(%v)", len(this.AddHosts), len(that1.AddHosts))
 	}
 	for i := range this.AddHosts {
 		if !this.AddHosts[i].Equal(that1.AddHosts[i]) {
-			return fmt4.Errorf("AddHosts this[%v](%v) Not Equal that[%v](%v)", i, this.AddHosts[i], i, that1.AddHosts[i])
+			return fmt.Errorf("AddHosts this[%v](%v) Not Equal that[%v](%v)", i, this.AddHosts[i], i, that1.AddHosts[i])
 		}
 	}
 	if len(this.AddTasks) != len(that1.AddTasks) {
-		return fmt4.Errorf("AddTasks this(%v) Not Equal that(%v)", len(this.AddTasks), len(that1.AddTasks))
+		return fmt.Errorf("AddTasks this(%v) Not Equal that(%v)", len(this.AddTasks), len(that1.AddTasks))
 	}
 	for i := range this.AddTasks {
 		if !this.AddTasks[i].Equal(that1.AddTasks[i]) {
-			return fmt4.Errorf("AddTasks this[%v](%v) Not Equal that[%v](%v)", i, this.AddTasks[i], i, that1.AddTasks[i])
+			return fmt.Errorf("AddTasks this[%v](%v) Not Equal that[%v](%v)", i, this.AddTasks[i], i, that1.AddTasks[i])
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6638,7 +6887,7 @@ func (this *UpdateState) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6648,35 +6897,35 @@ func (this *StartTask) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*StartTask)
 	if !ok {
-		return fmt4.Errorf("that is not of type *StartTask")
+		return fmt.Errorf("that is not of type *StartTask")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *StartTask but is nil && this != nil")
+		return fmt.Errorf("that is type *StartTask but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *StartTaskbut is not nil && this == nil")
+		return fmt.Errorf("that is type *StartTaskbut is not nil && this == nil")
 	}
 	if this.OpId != nil && that1.OpId != nil {
 		if *this.OpId != *that1.OpId {
-			return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
+			return fmt.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
 		}
 	} else if this.OpId != nil {
-		return fmt4.Errorf("this.OpId == nil && that.OpId != nil")
+		return fmt.Errorf("this.OpId == nil && that.OpId != nil")
 	} else if that1.OpId != nil {
-		return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
+		return fmt.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
 	}
 	if !this.Task.Equal(that1.Task) {
-		return fmt4.Errorf("Task this(%v) Not Equal that(%v)", this.Task, that1.Task)
+		return fmt.Errorf("Task this(%v) Not Equal that(%v)", this.Task, that1.Task)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6712,7 +6961,7 @@ func (this *StartTask) Equal(that interface{}) bool {
 	if !this.Task.Equal(that1.Task) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6722,50 +6971,50 @@ func (this *StopTask) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*StopTask)
 	if !ok {
-		return fmt4.Errorf("that is not of type *StopTask")
+		return fmt.Errorf("that is not of type *StopTask")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *StopTask but is nil && this != nil")
+		return fmt.Errorf("that is type *StopTask but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *StopTaskbut is not nil && this == nil")
+		return fmt.Errorf("that is type *StopTaskbut is not nil && this == nil")
 	}
 	if this.OpId != nil && that1.OpId != nil {
 		if *this.OpId != *that1.OpId {
-			return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
+			return fmt.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
 		}
 	} else if this.OpId != nil {
-		return fmt4.Errorf("this.OpId == nil && that.OpId != nil")
+		return fmt.Errorf("this.OpId == nil && that.OpId != nil")
 	} else if that1.OpId != nil {
-		return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
+		return fmt.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
 	}
 	if this.TaskId != nil && that1.TaskId != nil {
 		if *this.TaskId != *that1.TaskId {
-			return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
+			return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
 		}
 	} else if this.TaskId != nil {
-		return fmt4.Errorf("this.TaskId == nil && that.TaskId != nil")
+		return fmt.Errorf("this.TaskId == nil && that.TaskId != nil")
 	} else if that1.TaskId != nil {
-		return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
+		return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
 	}
 	if this.Force != nil && that1.Force != nil {
 		if *this.Force != *that1.Force {
-			return fmt4.Errorf("Force this(%v) Not Equal that(%v)", *this.Force, *that1.Force)
+			return fmt.Errorf("Force this(%v) Not Equal that(%v)", *this.Force, *that1.Force)
 		}
 	} else if this.Force != nil {
-		return fmt4.Errorf("this.Force == nil && that.Force != nil")
+		return fmt.Errorf("this.Force == nil && that.Force != nil")
 	} else if that1.Force != nil {
-		return fmt4.Errorf("Force this(%v) Not Equal that(%v)", this.Force, that1.Force)
+		return fmt.Errorf("Force this(%v) Not Equal that(%v)", this.Force, that1.Force)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6816,7 +7065,7 @@ func (this *StopTask) Equal(that interface{}) bool {
 	} else if that1.Force != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6826,32 +7075,32 @@ func (this *OpAcknowledged) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*OpAcknowledged)
 	if !ok {
-		return fmt4.Errorf("that is not of type *OpAcknowledged")
+		return fmt.Errorf("that is not of type *OpAcknowledged")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *OpAcknowledged but is nil && this != nil")
+		return fmt.Errorf("that is type *OpAcknowledged but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *OpAcknowledgedbut is not nil && this == nil")
+		return fmt.Errorf("that is type *OpAcknowledgedbut is not nil && this == nil")
 	}
 	if this.OpId != nil && that1.OpId != nil {
 		if *this.OpId != *that1.OpId {
-			return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
+			return fmt.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
 		}
 	} else if this.OpId != nil {
-		return fmt4.Errorf("this.OpId == nil && that.OpId != nil")
+		return fmt.Errorf("this.OpId == nil && that.OpId != nil")
 	} else if that1.OpId != nil {
-		return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
+		return fmt.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6884,7 +7133,7 @@ func (this *OpAcknowledged) Equal(that interface{}) bool {
 	} else if that1.OpId != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6894,50 +7143,50 @@ func (this *TaskStatusChange) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*TaskStatusChange)
 	if !ok {
-		return fmt4.Errorf("that is not of type *TaskStatusChange")
+		return fmt.Errorf("that is not of type *TaskStatusChange")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *TaskStatusChange but is nil && this != nil")
+		return fmt.Errorf("that is type *TaskStatusChange but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *TaskStatusChangebut is not nil && this == nil")
+		return fmt.Errorf("that is type *TaskStatusChangebut is not nil && this == nil")
 	}
 	if this.TaskId != nil && that1.TaskId != nil {
 		if *this.TaskId != *that1.TaskId {
-			return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
+			return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
 		}
 	} else if this.TaskId != nil {
-		return fmt4.Errorf("this.TaskId == nil && that.TaskId != nil")
+		return fmt.Errorf("this.TaskId == nil && that.TaskId != nil")
 	} else if that1.TaskId != nil {
-		return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
+		return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
 	}
 	if this.Status != nil && that1.Status != nil {
 		if *this.Status != *that1.Status {
-			return fmt4.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
+			return fmt.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
 		}
 	} else if this.Status != nil {
-		return fmt4.Errorf("this.Status == nil && that.Status != nil")
+		return fmt.Errorf("this.Status == nil && that.Status != nil")
 	} else if that1.Status != nil {
-		return fmt4.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
+		return fmt.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
 	}
 	if this.Error != nil && that1.Error != nil {
 		if *this.Error != *that1.Error {
-			return fmt4.Errorf("Error this(%v) Not Equal that(%v)", *this.Error, *that1.Error)
+			return fmt.Errorf("Error this(%v) Not Equal that(%v)", *this.Error, *that1.Error)
 		}
 	} else if this.Error != nil {
-		return fmt4.Errorf("this.Error == nil && that.Error != nil")
+		return fmt.Errorf("this.Error == nil && that.Error != nil")
 	} else if that1.Error != nil {
-		return fmt4.Errorf("Error this(%v) Not Equal that(%v)", this.Error, that1.Error)
+		return fmt.Errorf("Error this(%v) Not Equal that(%v)", this.Error, that1.Error)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -6988,7 +7237,7 @@ func (this *TaskStatusChange) Equal(that interface{}) bool {
 	} else if that1.Error != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -6998,41 +7247,41 @@ func (this *HostStatusChange) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*HostStatusChange)
 	if !ok {
-		return fmt4.Errorf("that is not of type *HostStatusChange")
+		return fmt.Errorf("that is not of type *HostStatusChange")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *HostStatusChange but is nil && this != nil")
+		return fmt.Errorf("that is type *HostStatusChange but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *HostStatusChangebut is not nil && this == nil")
+		return fmt.Errorf("that is type *HostStatusChangebut is not nil && this == nil")
 	}
 	if this.HostId != nil && that1.HostId != nil {
 		if *this.HostId != *that1.HostId {
-			return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
+			return fmt.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
 		}
 	} else if this.HostId != nil {
-		return fmt4.Errorf("this.HostId == nil && that.HostId != nil")
+		return fmt.Errorf("this.HostId == nil && that.HostId != nil")
 	} else if that1.HostId != nil {
-		return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
+		return fmt.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
 	}
 	if this.Status != nil && that1.Status != nil {
 		if *this.Status != *that1.Status {
-			return fmt4.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
+			return fmt.Errorf("Status this(%v) Not Equal that(%v)", *this.Status, *that1.Status)
 		}
 	} else if this.Status != nil {
-		return fmt4.Errorf("this.Status == nil && that.Status != nil")
+		return fmt.Errorf("this.Status == nil && that.Status != nil")
 	} else if that1.Status != nil {
-		return fmt4.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
+		return fmt.Errorf("Status this(%v) Not Equal that(%v)", this.Status, that1.Status)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7074,7 +7323,7 @@ func (this *HostStatusChange) Equal(that interface{}) bool {
 	} else if that1.Status != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -7084,32 +7333,32 @@ func (this *ListTasks) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*ListTasks)
 	if !ok {
-		return fmt4.Errorf("that is not of type *ListTasks")
+		return fmt.Errorf("that is not of type *ListTasks")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *ListTasks but is nil && this != nil")
+		return fmt.Errorf("that is type *ListTasks but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *ListTasksbut is not nil && this == nil")
+		return fmt.Errorf("that is type *ListTasksbut is not nil && this == nil")
 	}
 	if this.OpId != nil && that1.OpId != nil {
 		if *this.OpId != *that1.OpId {
-			return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
+			return fmt.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
 		}
 	} else if this.OpId != nil {
-		return fmt4.Errorf("this.OpId == nil && that.OpId != nil")
+		return fmt.Errorf("this.OpId == nil && that.OpId != nil")
 	} else if that1.OpId != nil {
-		return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
+		return fmt.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7142,7 +7391,7 @@ func (this *ListTasks) Equal(that interface{}) bool {
 	} else if that1.OpId != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -7152,40 +7401,40 @@ func (this *CurrentTasks) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*CurrentTasks)
 	if !ok {
-		return fmt4.Errorf("that is not of type *CurrentTasks")
+		return fmt.Errorf("that is not of type *CurrentTasks")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *CurrentTasks but is nil && this != nil")
+		return fmt.Errorf("that is type *CurrentTasks but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *CurrentTasksbut is not nil && this == nil")
+		return fmt.Errorf("that is type *CurrentTasksbut is not nil && this == nil")
 	}
 	if this.OpId != nil && that1.OpId != nil {
 		if *this.OpId != *that1.OpId {
-			return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
+			return fmt.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
 		}
 	} else if this.OpId != nil {
-		return fmt4.Errorf("this.OpId == nil && that.OpId != nil")
+		return fmt.Errorf("this.OpId == nil && that.OpId != nil")
 	} else if that1.OpId != nil {
-		return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
+		return fmt.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
 	}
 	if len(this.TaskIds) != len(that1.TaskIds) {
-		return fmt4.Errorf("TaskIds this(%v) Not Equal that(%v)", len(this.TaskIds), len(that1.TaskIds))
+		return fmt.Errorf("TaskIds this(%v) Not Equal that(%v)", len(this.TaskIds), len(that1.TaskIds))
 	}
 	for i := range this.TaskIds {
 		if this.TaskIds[i] != that1.TaskIds[i] {
-			return fmt4.Errorf("TaskIds this[%v](%v) Not Equal that[%v](%v)", i, this.TaskIds[i], i, that1.TaskIds[i])
+			return fmt.Errorf("TaskIds this[%v](%v) Not Equal that[%v](%v)", i, this.TaskIds[i], i, that1.TaskIds[i])
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7226,7 +7475,7 @@ func (this *CurrentTasks) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -7236,35 +7485,35 @@ func (this *Error) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*Error)
 	if !ok {
-		return fmt4.Errorf("that is not of type *Error")
+		return fmt.Errorf("that is not of type *Error")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *Error but is nil && this != nil")
+		return fmt.Errorf("that is type *Error but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *Errorbut is not nil && this == nil")
+		return fmt.Errorf("that is type *Errorbut is not nil && this == nil")
 	}
 	if this.ErrorId != that1.ErrorId {
-		return fmt4.Errorf("ErrorId this(%v) Not Equal that(%v)", this.ErrorId, that1.ErrorId)
+		return fmt.Errorf("ErrorId this(%v) Not Equal that(%v)", this.ErrorId, that1.ErrorId)
 	}
 	if this.Description != nil && that1.Description != nil {
 		if *this.Description != *that1.Description {
-			return fmt4.Errorf("Description this(%v) Not Equal that(%v)", *this.Description, *that1.Description)
+			return fmt.Errorf("Description this(%v) Not Equal that(%v)", *this.Description, *that1.Description)
 		}
 	} else if this.Description != nil {
-		return fmt4.Errorf("this.Description == nil && that.Description != nil")
+		return fmt.Errorf("this.Description == nil && that.Description != nil")
 	} else if that1.Description != nil {
-		return fmt4.Errorf("Description this(%v) Not Equal that(%v)", this.Description, that1.Description)
+		return fmt.Errorf("Description this(%v) Not Equal that(%v)", this.Description, that1.Description)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7300,7 +7549,7 @@ func (this *Error) Equal(that interface{}) bool {
 	} else if that1.Description != nil {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -7310,26 +7559,26 @@ func (this *GenericError) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*GenericError)
 	if !ok {
-		return fmt4.Errorf("that is not of type *GenericError")
+		return fmt.Errorf("that is not of type *GenericError")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *GenericError but is nil && this != nil")
+		return fmt.Errorf("that is type *GenericError but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *GenericErrorbut is not nil && this == nil")
+		return fmt.Errorf("that is type *GenericErrorbut is not nil && this == nil")
 	}
 	if !this.Error.Equal(that1.Error) {
-		return fmt4.Errorf("Error this(%v) Not Equal that(%v)", this.Error, that1.Error)
+		return fmt.Errorf("Error this(%v) Not Equal that(%v)", this.Error, that1.Error)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7356,7 +7605,7 @@ func (this *GenericError) Equal(that interface{}) bool {
 	if !this.Error.Equal(that1.Error) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -7366,44 +7615,44 @@ func (this *StopError) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*StopError)
 	if !ok {
-		return fmt4.Errorf("that is not of type *StopError")
+		return fmt.Errorf("that is not of type *StopError")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *StopError but is nil && this != nil")
+		return fmt.Errorf("that is type *StopError but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *StopErrorbut is not nil && this == nil")
+		return fmt.Errorf("that is type *StopErrorbut is not nil && this == nil")
 	}
 	if this.OpId != nil && that1.OpId != nil {
 		if *this.OpId != *that1.OpId {
-			return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
+			return fmt.Errorf("OpId this(%v) Not Equal that(%v)", *this.OpId, *that1.OpId)
 		}
 	} else if this.OpId != nil {
-		return fmt4.Errorf("this.OpId == nil && that.OpId != nil")
+		return fmt.Errorf("this.OpId == nil && that.OpId != nil")
 	} else if that1.OpId != nil {
-		return fmt4.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
+		return fmt.Errorf("OpId this(%v) Not Equal that(%v)", this.OpId, that1.OpId)
 	}
 	if this.TaskId != nil && that1.TaskId != nil {
 		if *this.TaskId != *that1.TaskId {
-			return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
+			return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", *this.TaskId, *that1.TaskId)
 		}
 	} else if this.TaskId != nil {
-		return fmt4.Errorf("this.TaskId == nil && that.TaskId != nil")
+		return fmt.Errorf("this.TaskId == nil && that.TaskId != nil")
 	} else if that1.TaskId != nil {
-		return fmt4.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
+		return fmt.Errorf("TaskId this(%v) Not Equal that(%v)", this.TaskId, that1.TaskId)
 	}
 	if !this.Error.Equal(that1.Error) {
-		return fmt4.Errorf("Error this(%v) Not Equal that(%v)", this.Error, that1.Error)
+		return fmt.Errorf("Error this(%v) Not Equal that(%v)", this.Error, that1.Error)
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7448,7 +7697,7 @@ func (this *StopError) Equal(that interface{}) bool {
 	if !this.Error.Equal(that1.Error) {
 		return false
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -7458,31 +7707,31 @@ func (this *CheckTasks) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*CheckTasks)
 	if !ok {
-		return fmt4.Errorf("that is not of type *CheckTasks")
+		return fmt.Errorf("that is not of type *CheckTasks")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *CheckTasks but is nil && this != nil")
+		return fmt.Errorf("that is type *CheckTasks but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *CheckTasksbut is not nil && this == nil")
+		return fmt.Errorf("that is type *CheckTasksbut is not nil && this == nil")
 	}
 	if len(this.TaskIds) != len(that1.TaskIds) {
-		return fmt4.Errorf("TaskIds this(%v) Not Equal that(%v)", len(this.TaskIds), len(that1.TaskIds))
+		return fmt.Errorf("TaskIds this(%v) Not Equal that(%v)", len(this.TaskIds), len(that1.TaskIds))
 	}
 	for i := range this.TaskIds {
 		if this.TaskIds[i] != that1.TaskIds[i] {
-			return fmt4.Errorf("TaskIds this[%v](%v) Not Equal that[%v](%v)", i, this.TaskIds[i], i, that1.TaskIds[i])
+			return fmt.Errorf("TaskIds this[%v](%v) Not Equal that[%v](%v)", i, this.TaskIds[i], i, that1.TaskIds[i])
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7514,7 +7763,7 @@ func (this *CheckTasks) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true
@@ -7524,48 +7773,48 @@ func (this *CheckedTaskList) VerboseEqual(that interface{}) error {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that == nil && this != nil")
+		return fmt.Errorf("that == nil && this != nil")
 	}
 
 	that1, ok := that.(*CheckedTaskList)
 	if !ok {
-		return fmt4.Errorf("that is not of type *CheckedTaskList")
+		return fmt.Errorf("that is not of type *CheckedTaskList")
 	}
 	if that1 == nil {
 		if this == nil {
 			return nil
 		}
-		return fmt4.Errorf("that is type *CheckedTaskList but is nil && this != nil")
+		return fmt.Errorf("that is type *CheckedTaskList but is nil && this != nil")
 	} else if this == nil {
-		return fmt4.Errorf("that is type *CheckedTaskListbut is not nil && this == nil")
+		return fmt.Errorf("that is type *CheckedTaskListbut is not nil && this == nil")
 	}
 	if this.HostId != nil && that1.HostId != nil {
 		if *this.HostId != *that1.HostId {
-			return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
+			return fmt.Errorf("HostId this(%v) Not Equal that(%v)", *this.HostId, *that1.HostId)
 		}
 	} else if this.HostId != nil {
-		return fmt4.Errorf("this.HostId == nil && that.HostId != nil")
+		return fmt.Errorf("this.HostId == nil && that.HostId != nil")
 	} else if that1.HostId != nil {
-		return fmt4.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
+		return fmt.Errorf("HostId this(%v) Not Equal that(%v)", this.HostId, that1.HostId)
 	}
 	if len(this.Missing) != len(that1.Missing) {
-		return fmt4.Errorf("Missing this(%v) Not Equal that(%v)", len(this.Missing), len(that1.Missing))
+		return fmt.Errorf("Missing this(%v) Not Equal that(%v)", len(this.Missing), len(that1.Missing))
 	}
 	for i := range this.Missing {
 		if this.Missing[i] != that1.Missing[i] {
-			return fmt4.Errorf("Missing this[%v](%v) Not Equal that[%v](%v)", i, this.Missing[i], i, that1.Missing[i])
+			return fmt.Errorf("Missing this[%v](%v) Not Equal that[%v](%v)", i, this.Missing[i], i, that1.Missing[i])
 		}
 	}
 	if len(this.Unknown) != len(that1.Unknown) {
-		return fmt4.Errorf("Unknown this(%v) Not Equal that(%v)", len(this.Unknown), len(that1.Unknown))
+		return fmt.Errorf("Unknown this(%v) Not Equal that(%v)", len(this.Unknown), len(that1.Unknown))
 	}
 	for i := range this.Unknown {
 		if this.Unknown[i] != that1.Unknown[i] {
-			return fmt4.Errorf("Unknown this[%v](%v) Not Equal that[%v](%v)", i, this.Unknown[i], i, that1.Unknown[i])
+			return fmt.Errorf("Unknown this[%v](%v) Not Equal that[%v](%v)", i, this.Unknown[i], i, that1.Unknown[i])
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return fmt4.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
 	}
 	return nil
 }
@@ -7614,7 +7863,7 @@ func (this *CheckedTaskList) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !bytes1.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
 	return true

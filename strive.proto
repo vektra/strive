@@ -1,6 +1,6 @@
 package strive;
 
-import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/vektra/tai64n/tai64n.proto";
 
 option (gogoproto.marshaler_all) = true;
@@ -18,13 +18,17 @@ message Range {
   required int64 end = 2;
 }
 
+message Ranges {
+  repeated Range ranges = 1;
+}
+
 message Value {
   enum ValueType {
     INT = 0;
     STRING = 1;
     BYTES = 2;
     BOOL = 3;
-    RANGE = 4;
+    RANGES = 4;
     LIST = 5;
     MAP = 6;
   }
@@ -35,7 +39,7 @@ message Value {
   optional string str_val = 3;
   optional bytes bytes_val = 4;
   optional bool bool_val = 5;
-  optional Range range_val = 6;
+  optional Ranges range_val = 6;
   repeated Value list_val = 7;
   repeated Variable map_val = 8;
 }

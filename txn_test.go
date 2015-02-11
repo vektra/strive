@@ -140,6 +140,58 @@ func TestTxn(t *testing.T) {
 		assert.Equal(t, mem.GetValue().GetIntVal(), 512)
 	})
 
+	n.It("tracks the port resources of tasks", func() {
+		task.Resources = append(task.Resources,
+			&HostResource{
+				HostId: proto.String("t1"),
+				Resources: []*Resource{
+					{
+						Type: Resource_PORT.Enum(),
+						Value: NewRangesValue(
+							&Range{
+								Start: proto.Int64(1000),
+								End:   proto.Int64(1010),
+							},
+						),
+					},
+				},
+			},
+		)
+
+		us := UpdateState{
+			AddTasks: []*Task{task},
+		}.Encode()
+
+		txn.state.Available["t1"] = NewResources([]*Resource{
+			&Resource{
+				Type:  Resource_CPU.Enum(),
+				Value: NewIntValue(4),
+			},
+			&Resource{
+				Type:  Resource_MEMORY.Enum(),
+				Value: NewIntValue(1024),
+			},
+			&Resource{
+				Type: Resource_PORT.Enum(),
+				Value: NewRangesValue(&Range{
+					Start: proto.Int64(1000),
+					End:   proto.Int64(2000),
+				}),
+			},
+		})
+
+		err := txn.HandleMessage(us)
+		require.NoError(t, err)
+
+		ports := txn.state.Available["t1"].FindAll(Resource_PORT)
+		assert.Equal(t, len(ports), 1)
+
+		r := ports[0].GetValue().GetRangeVal().Ranges[0]
+
+		assert.Equal(t, *r.Start, 1011)
+		assert.Equal(t, *r.End, 2000)
+	})
+
 	n.It("sets the status of a new task to created", func() {
 		task.Status = TaskStatus_RUNNING.Enum()
 

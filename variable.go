@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 func (v *Value) ForceString() string {
@@ -20,9 +21,14 @@ func (v *Value) ForceString() string {
 		} else {
 			return "0"
 		}
-	case Value_RANGE:
-		r := v.GetRangeVal()
-		return fmt.Sprintf("%d-%d", r.GetStart(), r.GetEnd())
+	case Value_RANGES:
+		var parts []string
+
+		for _, r := range v.GetRangeVal().Ranges {
+			parts = append(parts, fmt.Sprintf("%d-%d", r.GetStart(), r.GetEnd()))
+		}
+
+		return "[" + strings.Join(parts, ",") + "]"
 	case Value_LIST:
 		var list []string
 
@@ -66,6 +72,13 @@ func NewBoolValue(b bool) *Value {
 	}
 }
 
+func NewRangesValue(ranges ...*Range) *Value {
+	return &Value{
+		ValueType: Value_RANGES.Enum(),
+		RangeVal:  &Ranges{Ranges: ranges},
+	}
+}
+
 func (v *Value) Interface() interface{} {
 	switch v.GetValueType() {
 	case Value_STRING:
@@ -76,9 +89,8 @@ func (v *Value) Interface() interface{} {
 		return v.GetBoolVal()
 	case Value_BYTES:
 		return v.GetBytesVal()
-	case Value_RANGE:
-		r := v.GetRangeVal()
-		return []int64{r.GetStart(), r.GetEnd()}
+	case Value_RANGES:
+		return v.GetRangeVal()
 	case Value_LIST:
 		var list []interface{}
 
