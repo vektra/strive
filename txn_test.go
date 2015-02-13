@@ -192,6 +192,49 @@ func TestTxn(t *testing.T) {
 		assert.Equal(t, *r.End, 2000)
 	})
 
+	n.It("preserves volume and custom resources", func() {
+		task.Resources = append(task.Resources,
+			&HostResource{
+				HostId: proto.String("t1"),
+				Resources: []*Resource{
+					{
+						Type:  Resource_VOLUME.Enum(),
+						Value: NewStringValue("a-b-c"),
+					},
+					{
+						Type:  Resource_CUSTOM.Enum(),
+						Value: NewStringValue("a-b-c"),
+					},
+				},
+			},
+		)
+
+		txn.state.Available["t1"] = NewResources([]*Resource{
+			&Resource{
+				Type:  Resource_CPU.Enum(),
+				Value: NewIntValue(4),
+			},
+			&Resource{
+				Type:  Resource_MEMORY.Enum(),
+				Value: NewIntValue(1024),
+			},
+			&Resource{
+				Type: Resource_PORT.Enum(),
+				Value: NewRangesValue(&Range{
+					Start: proto.Int64(1000),
+					End:   proto.Int64(2000),
+				}),
+			},
+		})
+
+		us := UpdateState{
+			AddTasks: []*Task{task},
+		}.Encode()
+
+		err := txn.HandleMessage(us)
+		require.NoError(t, err)
+	})
+
 	n.It("sets the status of a new task to created", func() {
 		task.Status = TaskStatus_RUNNING.Enum()
 

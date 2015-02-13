@@ -156,17 +156,21 @@ func (t *Txn) updateState(us *UpdateState) error {
 			avail := changes[hostres.GetHostId()]
 
 			for _, res := range hostres.Resources {
-				cur, ok := avail.Find(res.GetType())
-				if !ok {
-					return ErrNoResource
-				}
+				if res.StoreOnly() {
+					avail.Add(res)
+				} else {
+					cur, ok := avail.Find(res.GetType())
+					if !ok {
+						return ErrNoResource
+					}
 
-				up, err := cur.Remove(res)
-				if err != nil {
-					return ErrNotEnoughResource
-				}
+					up, err := cur.Remove(res)
+					if err != nil {
+						return ErrNotEnoughResource
+					}
 
-				avail.Replace(cur, up)
+					avail.Replace(cur, up)
+				}
 			}
 		}
 	}

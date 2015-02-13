@@ -98,6 +98,10 @@ func (r *Resource) Remove(o *Resource) (*Resource, error) {
 	return nil, ErrUnableToRemove
 }
 
+func (r *Resource) StoreOnly() bool {
+	return r.GetType() == Resource_CUSTOM || r.GetType() == Resource_VOLUME
+}
+
 func (r *Range) Over(x *Range) bool {
 	return x.GetStart() >= r.GetStart() && x.GetEnd() <= r.GetEnd()
 }
