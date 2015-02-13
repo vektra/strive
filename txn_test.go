@@ -284,6 +284,58 @@ func TestTxn(t *testing.T) {
 		assert.Equal(t, mem.GetValue().GetIntVal(), 128)
 	})
 
+	n.It("rejects an update if the ports are not available", func() {
+		task.Resources = append(task.Resources,
+			&HostResource{
+				HostId: proto.String("t1"),
+				Resources: []*Resource{
+					{
+						Type: Resource_PORT.Enum(),
+						Value: NewRangesValue(
+							&Range{
+								Start: proto.Int64(1999),
+								End:   proto.Int64(2003),
+							},
+						),
+					},
+				},
+			},
+		)
+
+		us := UpdateState{
+			AddTasks: []*Task{task},
+		}.Encode()
+
+		txn.state.Available["t1"] = NewResources([]*Resource{
+			&Resource{
+				Type:  Resource_CPU.Enum(),
+				Value: NewIntValue(4),
+			},
+			&Resource{
+				Type:  Resource_MEMORY.Enum(),
+				Value: NewIntValue(1024),
+			},
+			&Resource{
+				Type: Resource_PORT.Enum(),
+				Value: NewRangesValue(&Range{
+					Start: proto.Int64(1000),
+					End:   proto.Int64(2000),
+				}),
+			},
+		})
+
+		err := txn.HandleMessage(us)
+		assert.Equal(t, err, ErrNotEnoughResource)
+
+		ports := txn.state.Available["t1"].FindAll(Resource_PORT)
+		assert.Equal(t, len(ports), 1)
+
+		r := ports[0].GetValue().GetRangeVal().Ranges[0]
+
+		assert.Equal(t, *r.Start, 1000)
+		assert.Equal(t, *r.End, 2000)
+	})
+
 	n.It("updates a hosts heartbeat field when it recieves a status change", func() {
 		txn.state.Hosts["h1"] = &Host{
 			Status:        HostStatus_ONLINE.Enum(),

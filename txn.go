@@ -142,47 +142,38 @@ func (t *Txn) updateState(us *UpdateState) error {
 		txnHosts.Set(int64(len(t.state.Hosts)))
 	}
 
-	for _, task := range us.AddTasks {
-		for _, hostres := range task.Resources {
-			host := hostres.GetHostId()
+	// calculate a new available resources list for a host and
+	// bail if that's not possible.
 
-			avail := t.state.Available[host]
+	changes := make(map[string]Resources)
 
-			for _, res := range hostres.GetResources() {
-				aval, ok := avail.Find(res.GetType())
-				if !ok {
-					txnUpdateErrors.Add(1)
-					return ErrNoResource
-				}
-
-				if aval.GetValue().GetIntVal() < res.GetValue().GetIntVal() {
-					txnUpdateErrors.Add(1)
-					return ErrNotEnoughResource
-				}
-			}
-		}
+	for hr, ress := range t.state.Available {
+		changes[hr] = ress.Dup()
 	}
 
-	// ok, we can commit the tasks
 	for _, task := range us.AddTasks {
 		for _, hostres := range task.Resources {
-			avail := t.state.Available[hostres.GetHostId()]
+			avail := changes[hostres.GetHostId()]
 
 			for _, res := range hostres.Resources {
 				cur, ok := avail.Find(res.GetType())
 				if !ok {
-					panic("resource went missing between checking and taking")
+					return ErrNoResource
 				}
 
 				up, err := cur.Remove(res)
 				if err != nil {
-					panic(err)
+					return ErrNotEnoughResource
 				}
 
 				avail.Replace(cur, up)
 			}
 		}
+	}
 
+	t.state.Available = changes
+
+	for _, task := range us.AddTasks {
 		txnTasksCreated.Add(1)
 
 		task.Status = TaskStatus_CREATED.Enum()

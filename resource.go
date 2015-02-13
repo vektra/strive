@@ -18,6 +18,16 @@ func NewResources(slice []*Resource) Resources {
 	return ret
 }
 
+func (r Resources) Dup() Resources {
+	ret := make(Resources)
+
+	for res, _ := range r {
+		ret.Add(res)
+	}
+
+	return ret
+}
+
 func (r Resources) Find(t Resource_ResourceType) (*Resource, bool) {
 	for res, _ := range r {
 		if res.GetType() == t {
@@ -62,6 +72,10 @@ func (r *Resource) Remove(o *Resource) (*Resource, error) {
 
 	switch r.GetType() {
 	case Resource_CPU, Resource_MEMORY:
+		if r.GetValue().GetIntVal() < o.GetValue().GetIntVal() {
+			return nil, ErrUnableToRemove
+		}
+
 		return &Resource{
 			Type:  r.Type,
 			Value: NewIntValue(r.GetValue().GetIntVal() - o.GetValue().GetIntVal()),
