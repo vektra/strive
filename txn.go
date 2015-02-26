@@ -81,6 +81,8 @@ func (t *Txn) HandleMessage(vm *Message) error {
 	}
 
 	switch specific := msg.(type) {
+	case *FetchState:
+		return t.fetchState(vm)
 	case *UpdateState:
 		return t.updateState(specific)
 	case *HostStatusChange:
@@ -92,6 +94,34 @@ func (t *Txn) HandleMessage(vm *Message) error {
 	}
 
 	return ErrUnknownMessage
+}
+
+func (t *Txn) fetchState(msg *Message) error {
+	var (
+		hosts []*Host
+		tasks []*Task
+		avail []*HostResource
+	)
+
+	for _, host := range t.state.Hosts {
+		hosts = append(hosts, host)
+	}
+
+	for _, task := range t.state.Tasks {
+		tasks = append(tasks, task)
+	}
+
+	for host, res := range t.state.Available {
+		avail = append(avail, &HostResource{HostId: &host, Resources: res.List()})
+	}
+
+	cs := ClusterState{
+		Hosts:     hosts,
+		Tasks:     tasks,
+		Available: avail,
+	}.Encode()
+
+	return t.mb.SendMessage(msg.ReplyTo, cs)
 }
 
 func (t *Txn) updateTask(ts *TaskStatusChange) error {

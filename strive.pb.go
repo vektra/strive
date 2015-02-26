@@ -20,7 +20,9 @@
 		TaskDescription
 		HostResource
 		Task
+		ClusterState
 		UpdateState
+		FetchState
 		StartTask
 		StopTask
 		OpAcknowledged
@@ -763,6 +765,37 @@ func (m *Task) GetLastUpdate() *tai64n.TAI64N {
 	return nil
 }
 
+type ClusterState struct {
+	Hosts            []*Host         `protobuf:"bytes,1,rep,name=hosts" json:"hosts,omitempty"`
+	Tasks            []*Task         `protobuf:"bytes,2,rep,name=tasks" json:"tasks,omitempty"`
+	Available        []*HostResource `protobuf:"bytes,3,rep,name=available" json:"available,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *ClusterState) Reset()      { *m = ClusterState{} }
+func (*ClusterState) ProtoMessage() {}
+
+func (m *ClusterState) GetHosts() []*Host {
+	if m != nil {
+		return m.Hosts
+	}
+	return nil
+}
+
+func (m *ClusterState) GetTasks() []*Task {
+	if m != nil {
+		return m.Tasks
+	}
+	return nil
+}
+
+func (m *ClusterState) GetAvailable() []*HostResource {
+	if m != nil {
+		return m.Available
+	}
+	return nil
+}
+
 type UpdateState struct {
 	AddHosts         []*Host `protobuf:"bytes,1,rep,name=add_hosts" json:"add_hosts,omitempty"`
 	AddTasks         []*Task `protobuf:"bytes,2,rep,name=add_tasks" json:"add_tasks,omitempty"`
@@ -785,6 +818,13 @@ func (m *UpdateState) GetAddTasks() []*Task {
 	}
 	return nil
 }
+
+type FetchState struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *FetchState) Reset()      { *m = FetchState{} }
+func (*FetchState) ProtoMessage() {}
 
 type StartTask struct {
 	OpId             *string `protobuf:"bytes,1,req,name=opId" json:"opId,omitempty"`
@@ -2498,6 +2538,117 @@ func (m *Task) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+func (m *ClusterState) Unmarshal(data []byte) error {
+	l := len(data)
+	index := 0
+	for index < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if index >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[index]
+			index++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hosts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hosts = append(m.Hosts, &Host{})
+			m.Hosts[len(m.Hosts)-1].Unmarshal(data[index:postIndex])
+			index = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Tasks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Tasks = append(m.Tasks, &Task{})
+			m.Tasks[len(m.Tasks)-1].Unmarshal(data[index:postIndex])
+			index = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Available", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Available = append(m.Available, &HostResource{})
+			m.Available[len(m.Available)-1].Unmarshal(data[index:postIndex])
+			index = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			index -= sizeOfWire
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
+			if err != nil {
+				return err
+			}
+			if (index + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
+			index += skippy
+		}
+	}
+	return nil
+}
 func (m *UpdateState) Unmarshal(data []byte) error {
 	l := len(data)
 	index := 0
@@ -2563,6 +2714,47 @@ func (m *UpdateState) Unmarshal(data []byte) error {
 			m.AddTasks = append(m.AddTasks, &Task{})
 			m.AddTasks[len(m.AddTasks)-1].Unmarshal(data[index:postIndex])
 			index = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			index -= sizeOfWire
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
+			if err != nil {
+				return err
+			}
+			if (index + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
+			index += skippy
+		}
+	}
+	return nil
+}
+func (m *FetchState) Unmarshal(data []byte) error {
+	l := len(data)
+	index := 0
+	for index < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if index >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[index]
+			index++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		switch fieldNum {
 		default:
 			var sizeOfWire int
 			for {
@@ -3779,6 +3971,19 @@ func (this *Task) String() string {
 	}, "")
 	return s
 }
+func (this *ClusterState) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterState{`,
+		`Hosts:` + strings.Replace(fmt.Sprintf("%v", this.Hosts), "Host", "Host", 1) + `,`,
+		`Tasks:` + strings.Replace(fmt.Sprintf("%v", this.Tasks), "Task", "Task", 1) + `,`,
+		`Available:` + strings.Replace(fmt.Sprintf("%v", this.Available), "HostResource", "HostResource", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func (this *UpdateState) String() string {
 	if this == nil {
 		return "nil"
@@ -3786,6 +3991,16 @@ func (this *UpdateState) String() string {
 	s := strings.Join([]string{`&UpdateState{`,
 		`AddHosts:` + strings.Replace(fmt.Sprintf("%v", this.AddHosts), "Host", "Host", 1) + `,`,
 		`AddTasks:` + strings.Replace(fmt.Sprintf("%v", this.AddTasks), "Task", "Task", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *FetchState) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&FetchState{`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -4232,6 +4447,33 @@ func (m *Task) Size() (n int) {
 	return n
 }
 
+func (m *ClusterState) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Hosts) > 0 {
+		for _, e := range m.Hosts {
+			l = e.Size()
+			n += 1 + l + sovStrive(uint64(l))
+		}
+	}
+	if len(m.Tasks) > 0 {
+		for _, e := range m.Tasks {
+			l = e.Size()
+			n += 1 + l + sovStrive(uint64(l))
+		}
+	}
+	if len(m.Available) > 0 {
+		for _, e := range m.Available {
+			l = e.Size()
+			n += 1 + l + sovStrive(uint64(l))
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
 func (m *UpdateState) Size() (n int) {
 	var l int
 	_ = l
@@ -4247,6 +4489,15 @@ func (m *UpdateState) Size() (n int) {
 			n += 1 + l + sovStrive(uint64(l))
 		}
 	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *FetchState) Size() (n int) {
+	var l int
+	_ = l
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -5075,6 +5326,63 @@ func (m *Task) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
+func (m *ClusterState) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *ClusterState) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Hosts) > 0 {
+		for _, msg := range m.Hosts {
+			data[i] = 0xa
+			i++
+			i = encodeVarintStrive(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.Tasks) > 0 {
+		for _, msg := range m.Tasks {
+			data[i] = 0x12
+			i++
+			i = encodeVarintStrive(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.Available) > 0 {
+		for _, msg := range m.Available {
+			data[i] = 0x1a
+			i++
+			i = encodeVarintStrive(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(data[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func (m *UpdateState) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -5114,6 +5422,27 @@ func (m *UpdateState) MarshalTo(data []byte) (n int, err error) {
 			i += n
 		}
 	}
+	if m.XXX_unrecognized != nil {
+		i += copy(data[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *FetchState) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *FetchState) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
@@ -6810,6 +7139,104 @@ func (this *Task) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *ClusterState) VerboseEqual(that interface{}) error {
+	if that == nil {
+		if this == nil {
+			return nil
+		}
+		return fmt.Errorf("that == nil && this != nil")
+	}
+
+	that1, ok := that.(*ClusterState)
+	if !ok {
+		return fmt.Errorf("that is not of type *ClusterState")
+	}
+	if that1 == nil {
+		if this == nil {
+			return nil
+		}
+		return fmt.Errorf("that is type *ClusterState but is nil && this != nil")
+	} else if this == nil {
+		return fmt.Errorf("that is type *ClusterStatebut is not nil && this == nil")
+	}
+	if len(this.Hosts) != len(that1.Hosts) {
+		return fmt.Errorf("Hosts this(%v) Not Equal that(%v)", len(this.Hosts), len(that1.Hosts))
+	}
+	for i := range this.Hosts {
+		if !this.Hosts[i].Equal(that1.Hosts[i]) {
+			return fmt.Errorf("Hosts this[%v](%v) Not Equal that[%v](%v)", i, this.Hosts[i], i, that1.Hosts[i])
+		}
+	}
+	if len(this.Tasks) != len(that1.Tasks) {
+		return fmt.Errorf("Tasks this(%v) Not Equal that(%v)", len(this.Tasks), len(that1.Tasks))
+	}
+	for i := range this.Tasks {
+		if !this.Tasks[i].Equal(that1.Tasks[i]) {
+			return fmt.Errorf("Tasks this[%v](%v) Not Equal that[%v](%v)", i, this.Tasks[i], i, that1.Tasks[i])
+		}
+	}
+	if len(this.Available) != len(that1.Available) {
+		return fmt.Errorf("Available this(%v) Not Equal that(%v)", len(this.Available), len(that1.Available))
+	}
+	for i := range this.Available {
+		if !this.Available[i].Equal(that1.Available[i]) {
+			return fmt.Errorf("Available this[%v](%v) Not Equal that[%v](%v)", i, this.Available[i], i, that1.Available[i])
+		}
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	}
+	return nil
+}
+func (this *ClusterState) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*ClusterState)
+	if !ok {
+		return false
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if len(this.Hosts) != len(that1.Hosts) {
+		return false
+	}
+	for i := range this.Hosts {
+		if !this.Hosts[i].Equal(that1.Hosts[i]) {
+			return false
+		}
+	}
+	if len(this.Tasks) != len(that1.Tasks) {
+		return false
+	}
+	for i := range this.Tasks {
+		if !this.Tasks[i].Equal(that1.Tasks[i]) {
+			return false
+		}
+	}
+	if len(this.Available) != len(that1.Available) {
+		return false
+	}
+	for i := range this.Available {
+		if !this.Available[i].Equal(that1.Available[i]) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return false
+	}
+	return true
+}
 func (this *UpdateState) VerboseEqual(that interface{}) error {
 	if that == nil {
 		if this == nil {
@@ -6886,6 +7313,56 @@ func (this *UpdateState) Equal(that interface{}) bool {
 		if !this.AddTasks[i].Equal(that1.AddTasks[i]) {
 			return false
 		}
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return false
+	}
+	return true
+}
+func (this *FetchState) VerboseEqual(that interface{}) error {
+	if that == nil {
+		if this == nil {
+			return nil
+		}
+		return fmt.Errorf("that == nil && this != nil")
+	}
+
+	that1, ok := that.(*FetchState)
+	if !ok {
+		return fmt.Errorf("that is not of type *FetchState")
+	}
+	if that1 == nil {
+		if this == nil {
+			return nil
+		}
+		return fmt.Errorf("that is type *FetchState but is nil && this != nil")
+	} else if this == nil {
+		return fmt.Errorf("that is type *FetchStatebut is not nil && this == nil")
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return fmt.Errorf("XXX_unrecognized this(%v) Not Equal that(%v)", this.XXX_unrecognized, that1.XXX_unrecognized)
+	}
+	return nil
+}
+func (this *FetchState) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*FetchState)
+	if !ok {
+		return false
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false

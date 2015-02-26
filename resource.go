@@ -63,6 +63,16 @@ func (r Resources) Remove(res *Resource) {
 	delete(r, res)
 }
 
+func (r Resources) List() []*Resource {
+	var out []*Resource
+
+	for res, _ := range r {
+		out = append(out, res)
+	}
+
+	return out
+}
+
 var ErrUnableToRemove = errors.New("unable to remove")
 
 func (r *Resource) Remove(o *Resource) (*Resource, error) {

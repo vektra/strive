@@ -139,10 +139,18 @@ message Task {
   required tai64n.TAI64n last_update = 7;
 }
 
+message ClusterState {
+  repeated Host hosts = 1;
+  repeated Task tasks = 2;
+  repeated HostResource available = 3;
+}
+
 message UpdateState {
   repeated Host add_hosts = 1;
   repeated Task add_tasks = 2;
 }
+
+message FetchState {}
 
 message StartTask {
   required string opId = 1;

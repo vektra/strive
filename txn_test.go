@@ -65,7 +65,33 @@ func TestTxn(t *testing.T) {
 			Status:     TaskStatus_CREATED.Enum(),
 			LastUpdate: tai64n.Now(),
 		}
+	})
 
+	n.It("returns the current state when requested", func() {
+		us := UpdateState{
+			AddHosts: []*Host{host},
+			AddTasks: []*Task{task},
+		}.Encode()
+
+		err := txn.HandleMessage(us)
+
+		avail := &HostResource{
+			HostId:    host.HostId,
+			Resources: txn.state.Available[host.GetHostId()].List(),
+		}
+
+		state := ClusterState{
+			Hosts:     []*Host{txn.state.Hosts[host.GetHostId()]},
+			Tasks:     []*Task{txn.state.Tasks[task.GetTaskId()]},
+			Available: []*HostResource{avail},
+		}.Encode()
+
+		mb.On("SendMessage", "sched1", state).Return(nil)
+		fs := FetchState{}.Encode()
+		fs.ReplyTo = "sched1"
+
+		err = txn.HandleMessage(fs)
+		require.NoError(t, err)
 	})
 
 	n.It("adds new hosts to the state", func() {

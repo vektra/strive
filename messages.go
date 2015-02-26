@@ -24,6 +24,24 @@ func (m *Message) GoString() string {
 	return str
 }
 
+func (f FetchState) Encode() *Message {
+	bytes, err := f.Marshal()
+	if err != nil {
+		panic(err)
+	}
+
+	return &Message{Type: "FetchState", Body: bytes}
+}
+
+func (c ClusterState) Encode() *Message {
+	bytes, err := c.Marshal()
+	if err != nil {
+		panic(err)
+	}
+
+	return &Message{Type: "ClusterState", Body: bytes}
+}
+
 func (s UpdateState) Encode() *Message {
 	bytes, err := s.Marshal()
 	if err != nil {
@@ -137,6 +155,24 @@ var ErrUnknownMessage = errors.New("unknown message")
 
 func decodeMessage(vm *Message) (interface{}, error) {
 	switch vm.Type {
+	case "FetchState":
+		var st FetchState
+
+		err := st.Unmarshal(vm.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return &st, nil
+	case "ClusterState":
+		var st ClusterState
+
+		err := st.Unmarshal(vm.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return &st, nil
 	case "UpdateState":
 		var st UpdateState
 
